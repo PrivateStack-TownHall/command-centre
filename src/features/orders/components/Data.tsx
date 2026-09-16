@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import { ShoppingCart } from "lucide-react";
+
 import Main from "./Main";
 import ApplicationPagination from "@/features/applications/components/ApplicationPagination";
 
@@ -13,6 +15,7 @@ interface DataProps {
   status: string;
   dateFrom: string;
   dateTo: string;
+  sort: string;
   view: "grid" | "list";
   page: number;
   onPageChange: (page: number) => void;
@@ -24,12 +27,13 @@ function Data({
   status,
   dateFrom,
   dateTo,
+  sort,
   view,
   page,
   onPageChange,
 }: DataProps) {
   const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
+    let result = orders.filter((order) => {
       const matchStatus = status === "ALL" || order.status === status;
 
       const keyword = search.trim().toLowerCase();
@@ -47,7 +51,27 @@ function Data({
 
       return matchStatus && matchSearch && matchFrom && matchTo;
     });
-  }, [orders, search, status, dateFrom, dateTo]);
+
+    result = [...result];
+
+    if (sort === "latest") {
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+    } else if (sort === "oldest") {
+      result.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+    } else if (sort === "highest") {
+      result.sort((a, b) => Number(b.totalAmount) - Number(a.totalAmount));
+    } else if (sort === "lowest") {
+      result.sort((a, b) => Number(a.totalAmount) - Number(b.totalAmount));
+    }
+
+    return result;
+  }, [orders, search, status, dateFrom, dateTo, sort]);
 
   const totalPages = Math.max(
     1,
@@ -62,10 +86,13 @@ function Data({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <ShoppingCart className="h-4 w-4" />
+        </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Orders</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="text-base font-semibold text-slate-900">Orders</h3>
+          <p className="text-xs text-slate-500">
             Showing{" "}
             {filteredOrders.length === 0
               ? 0

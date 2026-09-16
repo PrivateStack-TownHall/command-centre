@@ -12,6 +12,7 @@ function OrdersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
   const [application, setApplication] = useState("kings-brew");
+  const [sort, setSort] = useState("latest");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
@@ -35,12 +36,14 @@ function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Orders"
-        description="Monitor customer orders across the Entrepreneur Topics Ecosystem."
-      />
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <PageHeader
+          title="Orders"
+          description="Monitor customer orders across the Entrepreneur Topics Ecosystem."
+        />
 
-      <Statistics orders={orders} />
+        <Statistics orders={orders} />
+      </div>
 
       <Toolbar
         search={search}
@@ -58,6 +61,8 @@ function OrdersPage() {
           setApplication(value);
           setPage(1);
         }}
+        sort={sort}
+        onSortChange={setSort}
         dateFrom={dateFrom}
         dateTo={dateTo}
         onDateFromChange={(value) => {
@@ -78,6 +83,7 @@ function OrdersPage() {
         status={status}
         dateFrom={dateFrom}
         dateTo={dateTo}
+        sort={sort}
         view={view}
         page={page}
         onPageChange={setPage}

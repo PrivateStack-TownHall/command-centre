@@ -1,4 +1,5 @@
 const KEYWORDS = [
+  // Food & drink — Kings Brew, Castle Kitchen, Byte Burger
   "aroma",
   "floral",
   "smooth",
@@ -17,16 +18,80 @@ const KEYWORDS = [
   "crisp",
   "juicy",
   "tender",
+  "savory",
+  "flavorful",
+  "cheesy",
+  "crispy",
+  "filling",
+  "hot",
+  "warm",
+
+  // Retail & tech — Trade Hub, Quantum Mart, WareTrack
+  "durable",
+  "reliable",
+  "sturdy",
+  "functional",
+  "innovative",
+  "responsive",
+  "efficient",
+  "accurate",
+  "affordable",
+  "lightweight",
+  "compact",
+  "powerful",
+  "seamless",
+  "authentic",
+  "genuine",
+
+  // Hospitality & travel — Medieval Airbnb, Nomad
+  "cozy",
+  "spacious",
+  "clean",
+  "comfortable",
+  "charming",
+  "scenic",
+  "relaxing",
+  "peaceful",
+  "convenient",
+  "quiet",
+  "stunning",
+  "memorable",
+
+  // Media, community & HR — Codigram, Pineapple Stack, M-ployee
+  "creative",
+  "vibrant",
+  "inspiring",
+  "helpful",
+  "informative",
+  "engaging",
+  "insightful",
+  "professional",
+  "supportive",
+  "organized",
+
+  // Library — Leather Shelf
+  "captivating",
+  "gripping",
+  "thoughtful",
+  "well-written",
+
+  // General sentiment — applies across every app
   "delicious",
   "perfect",
   "amazing",
   "excellent",
   "friendly",
   "fast",
+  "slow",
   "quality",
   "packaging",
   "value",
   "recommended",
+  "disappointing",
+  "poor",
+  "worth",
+  "easy",
+  "beautiful",
 ];
 
 /**

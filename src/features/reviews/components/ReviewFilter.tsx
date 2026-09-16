@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Search, Star } from "lucide-react";
+import { LayoutGrid, List, Search } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
@@ -38,11 +38,12 @@ function ReviewFilter({
         rounded-xl
         border
         border-slate-200
-        bg-slate-50/50
+        bg-white
         p-3
+        shadow-sm
       "
     >
-      <div className="relative min-w-[300px] flex-1">
+      <div className="relative min-w-[280px] flex-1">
         <Search
           className="
             absolute
@@ -59,7 +60,7 @@ function ReviewFilter({
           placeholder="Search reviews, products..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10"
+          className="h-11 rounded-xl pl-10"
         />
       </div>
 
@@ -67,9 +68,9 @@ function ReviewFilter({
         value={application}
         onChange={(e) => onApplicationChange(e.target.value)}
         className="
-          h-10
-          min-w-[180px]
-          rounded-md
+          h-11
+          min-w-[170px]
+          rounded-xl
           border
           border-slate-200
           bg-white
@@ -89,9 +90,9 @@ function ReviewFilter({
         value={rating}
         onChange={(e) => onRatingChange(e.target.value)}
         className="
-          h-10
-          min-w-[180px]
-          rounded-md
+          h-11
+          min-w-[150px]
+          rounded-xl
           border
           border-slate-200
           bg-white
@@ -111,9 +112,9 @@ function ReviewFilter({
         value={sort}
         onChange={(e) => onSortChange(e.target.value)}
         className="
-          h-10
-          min-w-[180px]
-          rounded-md
+          h-11
+          min-w-[160px]
+          rounded-xl
           border
           border-slate-200
           bg-white
@@ -127,48 +128,30 @@ function ReviewFilter({
         <option value="lowest">Lowest Rating</option>
       </select>
 
-      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+      <div className="flex items-center gap-1.5">
         <button
           onClick={() => onViewChange("grid")}
-          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
             view === "grid"
-              ? "bg-primary text-white"
-              : "text-slate-500 hover:bg-slate-100"
+              ? "bg-slate-900 text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
-          aria-label="Grid view"
         >
           <LayoutGrid className="h-4 w-4" />
+          Grid
         </button>
 
         <button
           onClick={() => onViewChange("list")}
-          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
             view === "list"
-              ? "bg-primary text-white"
-              : "text-slate-500 hover:bg-slate-100"
+              ? "bg-slate-900 text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
           }`}
-          aria-label="List view"
         >
           <List className="h-4 w-4" />
+          List
         </button>
-      </div>
-
-      <div
-        className="
-          flex
-          items-center
-          gap-2
-          rounded-lg
-          bg-amber-50
-          px-3
-          py-2
-          text-sm
-          font-medium
-          text-amber-700
-        "
-      >
-        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-        Customer Feedback
       </div>
     </div>
   );

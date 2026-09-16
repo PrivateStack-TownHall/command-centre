@@ -1,91 +1,65 @@
-import { Activity, Clock3, Database, Gauge } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Server, Zap } from "lucide-react";
 
 interface Props {
-  status: string;
-  databaseStatus: string;
-  uptimeSeconds: number;
-  latencyMs: number;
-}
-
-function formatUptime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${Math.floor(seconds % 60)}s`;
+  total: number;
+  online: number;
+  warning: number;
+  offline: number;
 }
 
 export default function MonitoringStats({
-  status,
-  databaseStatus,
-  uptimeSeconds,
-  latencyMs,
+  total,
+  online,
+  warning,
+  offline,
 }: Props) {
-  const isUp = status === "UP";
-  const isConnected = databaseStatus === "CONNECTED";
-
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <div
-        className={`rounded-md border-2 bg-white p-5 ${
-          isUp ? "border-emerald-500" : "border-red-500"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Application Status</p>
-            <h2
-              className={`mt-1 text-2xl font-bold ${
-                isUp ? "text-emerald-600" : "text-red-600"
-              }`}
-            >
-              {status}
-            </h2>
-          </div>
-          <Activity className={isUp ? "text-emerald-500" : "text-red-500"} />
+    <div className="grid grid-cols-2 gap-4 xl:flex xl:items-center">
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          <Server className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xl font-bold leading-none text-slate-900">
+            {total}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Total Services</p>
         </div>
       </div>
 
-      <div
-        className={`rounded-md border-2 bg-white p-5 ${
-          isConnected ? "border-blue-500" : "border-red-500"
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Database</p>
-            <h2
-              className={`mt-1 text-2xl font-bold ${
-                isConnected ? "text-blue-600" : "text-red-600"
-              }`}
-            >
-              {databaseStatus}
-            </h2>
-          </div>
-          <Database className="text-blue-500" />
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+          <CheckCircle2 className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xl font-bold leading-none text-slate-900">
+            {online}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Online</p>
         </div>
       </div>
 
-      <div className="rounded-md border-2 border-violet-500 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Uptime</p>
-            <h2 className="mt-1 text-2xl font-bold text-violet-600">
-              {formatUptime(uptimeSeconds)}
-            </h2>
-          </div>
-          <Clock3 className="text-violet-500" />
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+          <AlertTriangle className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xl font-bold leading-none text-slate-900">
+            {warning}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Warning</p>
         </div>
       </div>
 
-      <div className="rounded-md border-2 border-amber-500 bg-white p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-slate-500">DB Latency</p>
-            <h2 className="mt-1 text-2xl font-bold text-amber-600">
-              {latencyMs} ms
-            </h2>
-          </div>
-          <Gauge className="text-amber-500" />
+      <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+          <Zap className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-xl font-bold leading-none text-slate-900">
+            {offline}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Offline</p>
         </div>
       </div>
     </div>

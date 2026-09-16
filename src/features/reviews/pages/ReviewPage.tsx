@@ -123,7 +123,7 @@ function ReviewPage() {
       <div className="space-y-6">
         <PageHeader
           title="Reviews"
-          description="Customer feedback across the ecosystem."
+          description="Real reviews from across our ecosystem."
         />
       </div>
     );
@@ -131,16 +131,18 @@ function ReviewPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Reviews"
-        description="Customer feedback across the ecosystem."
-      />
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <PageHeader
+          title="Reviews"
+          description="Real reviews from across our ecosystem."
+        />
 
-      <ReviewStats
-        totalReviews={totalReviews}
-        averageRating={averageRating}
-        totalProducts={products.length}
-      />
+        <ReviewStats
+          totalReviews={totalReviews}
+          averageRating={averageRating}
+          totalProducts={products.length}
+        />
+      </div>
 
       <ReviewFilter
         search={search}

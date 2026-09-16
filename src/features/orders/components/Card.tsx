@@ -1,16 +1,5 @@
 import { useState } from "react";
 
-import {
-  BadgeCheck,
-  CalendarDays,
-  ChevronRight,
-  Clock3,
-  CreditCard,
-  Package,
-  ShoppingBag,
-  User,
-} from "lucide-react";
-
 import OrderModal from "./Modal";
 
 import type { Order } from "../types/order.type";
@@ -19,248 +8,154 @@ interface CardProps {
   order: Order;
 }
 
+const STATUS_STYLE: Record<string, string> = {
+  PENDING: "bg-amber-100 text-amber-700",
+  PAID: "bg-emerald-100 text-emerald-700",
+  PROCESSING: "bg-blue-100 text-blue-700",
+  COMPLETED: "bg-emerald-100 text-emerald-700",
+  CANCELLED: "bg-red-100 text-red-700",
+};
+
+const STATUS_DOT: Record<string, string> = {
+  PENDING: "bg-amber-500",
+  PAID: "bg-emerald-500",
+  PROCESSING: "bg-blue-500",
+  COMPLETED: "bg-emerald-500",
+  CANCELLED: "bg-red-500",
+};
+
+const AVATAR_COLORS = [
+  "bg-blue-100 text-blue-700",
+  "bg-violet-100 text-violet-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-amber-100 text-amber-700",
+  "bg-pink-100 text-pink-700",
+];
+
+function initialsOf(name: string): string {
+  return name
+    .split(" ")
+    .map((word) => word.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 function Card({ order }: CardProps) {
   const [open, setOpen] = useState(false);
 
   const payment = order.payments[0];
-
-  const statusConfig = {
-    PENDING: {
-      badge: "bg-amber-100 text-amber-700 border border-amber-200",
-      gradient: "from-amber-50 via-yellow-50 to-white",
-      icon: Clock3,
-    },
-
-    PAID: {
-      badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-      gradient: "from-emerald-50 via-green-50 to-white",
-      icon: BadgeCheck,
-    },
-
-    PROCESSING: {
-      badge: "bg-violet-100 text-violet-700 border border-violet-200",
-      gradient: "from-violet-50 via-purple-50 to-white",
-      icon: Package,
-    },
-
-    COMPLETED: {
-      badge: "bg-sky-100 text-sky-700 border border-sky-200",
-      gradient: "from-sky-50 via-cyan-50 to-white",
-      icon: BadgeCheck,
-    },
-
-    CANCELLED: {
-      badge: "bg-red-100 text-red-700 border border-red-200",
-      gradient: "from-red-50 via-rose-50 to-white",
-      icon: Clock3,
-    },
-  }[order.status];
-
-  const StatusIcon = statusConfig.icon;
+  const avatarColor = AVATAR_COLORS[order.id % AVATAR_COLORS.length];
 
   return (
     <>
-      <div
+      <button
+        onClick={() => setOpen(true)}
         className="
-          overflow-hidden
-          rounded-2xl
+          flex
+          w-full
+          flex-col
+          rounded-xl
           border
           border-slate-200
           bg-white
+          p-4
+          text-left
           shadow-sm
           transition-all
-          duration-300
-          hover:-translate-y-1
-          hover:shadow-xl
+          hover:-translate-y-0.5
+          hover:shadow-md
         "
       >
-        <div
-          className={`
-            bg-gradient-to-br
-            ${statusConfig.gradient}
-            p-5
-          `}
-        >
-          <div className="flex items-start justify-between">
-            <div
-              className="
-                flex
-                h-12
-                w-12
-                items-center
-                justify-center
-                rounded-xl
-                bg-white
-                shadow-sm
-              "
-            >
-              <ShoppingBag className="h-6 w-6 text-primary" />
-            </div>
-
-            <div
-              className={`
-                flex
-                items-center
-                gap-1
-                rounded-full
-                px-3
-                py-1
-                text-xs
-                font-semibold
-                ${statusConfig.badge}
-              `}
-            >
-              <StatusIcon className="h-3.5 w-3.5" />
-
-              {order.status}
-            </div>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-bold text-slate-900">#{order.orderNumber}</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {new Date(order.createdAt).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}{" "}
+              •{" "}
+              {new Date(order.createdAt).toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
           </div>
 
-          <h3 className="mt-6 truncate text-lg font-bold text-slate-900">
-            {order.orderNumber}
-          </h3>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[order.status]}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[order.status]}`}
+            />
+            {order.status.charAt(0) + order.status.slice(1).toLowerCase()}
+          </span>
+        </div>
 
-          <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
-            <User className="h-4 w-4" />
-
-            {order.user.fullName}
+        <div className="mt-3 flex items-center gap-2.5">
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarColor}`}
+          >
+            {initialsOf(order.user.fullName)}
           </div>
-
-          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-            <CalendarDays className="h-4 w-4" />
-
-            {new Date(order.createdAt).toLocaleDateString("en-GB")}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-slate-900">
+              {order.user.fullName}
+            </p>
+            <p className="truncate text-xs text-slate-400">
+              {order.user.email}
+            </p>
           </div>
         </div>
 
-        <div className="space-y-5 p-5">
+        <div className="mt-3 flex items-center gap-1.5">
+          {order.items.slice(0, 3).map((item) => (
+            <img
+              key={item.id}
+              src="https://placehold.co/64x64"
+              alt={item.productName}
+              className="h-11 w-11 rounded-lg border border-slate-100 object-cover"
+              title={item.productName}
+            />
+          ))}
+
+          {order.items.length > 3 && (
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold text-slate-500">
+              +{order.items.length - 3}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-end justify-between border-t border-slate-100 pt-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Total Amount
-            </p>
-
-            <h2 className="mt-1 text-3xl font-bold text-primary">
+            <p className="text-xs text-slate-400">Total</p>
+            <p className="text-lg font-bold text-slate-900">
               Rp {Number(order.totalAmount).toLocaleString("id-ID")}
-            </h2>
-          </div>
-
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" />
-
-              <span className="text-sm font-semibold">
-                {order.items.length} Items
-              </span>
-            </div>
-
-            <div className="space-y-2">
-              {order.items.slice(0, 3).map((item) => (
-                <div
-                  key={item.id}
-                  className="
-                    flex
-                    items-center
-                    justify-between
-                    text-sm
-                  "
-                >
-                  <span className="truncate text-slate-600">
-                    {item.productName}
-                  </span>
-
-                  <span className="rounded bg-white px-2 py-0.5 text-xs font-medium text-slate-500">
-                    ×{item.quantity}
-                  </span>
-                </div>
-              ))}
-
-              {order.items.length > 3 && (
-                <div className="pt-1 text-xs font-medium text-primary">
-                  +{order.items.length - 3} more items
-                </div>
-              )}
-            </div>
+            </p>
           </div>
 
           {payment && (
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-                rounded-xl
-                border
-                border-slate-100
-                bg-white
-                p-4
-              "
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-lg
-                    bg-emerald-50
-                  "
-                >
-                  <CreditCard className="h-5 w-5 text-emerald-600" />
-                </div>
-
-                <div>
-                  <p className="text-xs text-slate-400">Payment</p>
-
-                  <p className="text-sm font-semibold">
-                    {payment.method.replaceAll("_", " ")}
-                  </p>
-                </div>
-              </div>
-
+            <div className="text-right">
               <span
-                className="
-                  rounded-full
-                  bg-emerald-100
-                  px-2.5
-                  py-1
-                  text-xs
-                  font-semibold
-                  text-emerald-700
-                "
+                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  payment.status === "SUCCESS"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : payment.status === "FAILED"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-violet-100 text-violet-700"
+                }`}
               >
-                {payment.status}
+                {payment.status === "SUCCESS" ? "Paid" : payment.status}
               </span>
+              <p className="mt-1 text-xs text-slate-400">
+                {payment.method.replaceAll("_", " ")}
+              </p>
             </div>
           )}
-
-          <button
-            onClick={() => setOpen(true)}
-            className="
-              flex
-              w-full
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              border
-              border-slate-200
-              bg-white
-              py-3
-              text-sm
-              font-semibold
-              transition-all
-              hover:border-primary
-              hover:bg-primary
-              hover:text-white
-            "
-          >
-            View Details
-            <ChevronRight className="h-4 w-4" />
-          </button>
         </div>
-      </div>
+      </button>
 
       <OrderModal open={open} onOpenChange={setOpen} order={order} />
     </>

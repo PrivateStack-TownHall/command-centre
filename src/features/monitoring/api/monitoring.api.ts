@@ -7,7 +7,7 @@ export async function getAuditLogs() {
     return [];
   }
 
-  const response = await axios.get(`${AUDIT_LOG_URL}/audit-logs`);
+  const response = await axios.get(`${AUDIT_LOG_URL}`);
 
   return response.data;
 }

@@ -1,15 +1,15 @@
 import PageHeader from "@/components/shared/page/PageHeader";
 import Loading from "@/components/shared/Loading";
 import ErrorState from "@/components/shared/state/ErrorState";
-import EmptyState from "@/components/shared/state/EmptyState";
 
 import { useCommandCentre } from "@/features/dashboard/hooks/useCommandCentre";
+import { APPLICATIONS } from "@/lib/constants";
 
 import { useAuditLogs } from "../hooks/useAuditLogs";
 
 import MonitoringStats from "../components/MonitoringStats";
 import AuditLogsCard from "../components/AuditLogsCard";
-import ServiceHealthCard from "../components/ServiceHealthCard";
+import ApplicationsTable from "../components/ApplicationsTable";
 import InfrastructureCard from "../components/InfrastructureCard";
 
 function MonitoringPage() {
@@ -17,13 +17,25 @@ function MonitoringPage() {
   const { data: auditLogs, isLoading: auditLoading } = useAuditLogs();
 
   const kingsBrew = data?.[0];
+  const isUp = kingsBrew?.health.status === "UP";
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Monitoring Command Centre"
-        description="Real-time monitoring, application health status, audit logs, and infrastructure overview — sourced from Kings Brew's public endpoints."
-      />
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <PageHeader
+          title="Monitoring Command Centre"
+          description="Real-time monitoring, system and health status, audit logs, and infrastructure overview."
+        />
+
+        {!isLoading && !isError && (
+          <MonitoringStats
+            total={APPLICATIONS.length}
+            online={isUp ? 1 : 0}
+            warning={0}
+            offline={kingsBrew && !isUp ? 1 : 0}
+          />
+        )}
+      </div>
 
       {isLoading && <Loading label="Loading monitoring data..." />}
 
@@ -31,45 +43,32 @@ function MonitoringPage() {
         <ErrorState description="Couldn't load monitoring data from Kings Brew." />
       )}
 
-      {!isLoading && !isError && !kingsBrew && (
-        <EmptyState description="No monitoring data available right now." />
-      )}
-
-      {!isLoading && !isError && kingsBrew && (
-        <>
-          <MonitoringStats
-            status={kingsBrew.health.status}
-            databaseStatus={kingsBrew.monitoring.database.status}
-            uptimeSeconds={kingsBrew.health.uptime}
-            latencyMs={kingsBrew.monitoring.database.latency}
+      {!isLoading && !isError && (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <AuditLogsCard
+            logs={auditLogs?.data ?? []}
+            isLoading={auditLoading}
           />
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <AuditLogsCard
-              logs={auditLogs?.data ?? []}
-              isLoading={auditLoading}
+          <div className="space-y-6">
+            <ApplicationsTable
+              totalCount={APPLICATIONS.length}
+              kingsBrew={
+                kingsBrew
+                  ? {
+                      status: kingsBrew.health.status,
+                      uptimeSeconds: kingsBrew.health.uptime,
+                      latencyMs: kingsBrew.monitoring.database.latency,
+                    }
+                  : undefined
+              }
             />
 
-            <div className="space-y-6">
-              <ServiceHealthCard
-                appName={kingsBrew.name}
-                emoji={kingsBrew.emoji}
-                status={kingsBrew.health.status}
-                version={kingsBrew.health.version}
-                uptimeSeconds={kingsBrew.health.uptime}
-                environment={kingsBrew.monitoring.node.environment}
-                platform={kingsBrew.monitoring.node.platform}
-                nodeVersion={kingsBrew.monitoring.node.version}
-              />
-
-              <InfrastructureCard
-                databaseStatus={kingsBrew.monitoring.database.status}
-                latencyMs={kingsBrew.monitoring.database.latency}
-                memory={kingsBrew.monitoring.memory}
-              />
-            </div>
+            <InfrastructureCard
+              databaseStatus={kingsBrew?.monitoring.database.status}
+            />
           </div>
-        </>
+        </div>
       )}
     </div>
   );

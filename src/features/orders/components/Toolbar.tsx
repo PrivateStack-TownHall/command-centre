@@ -8,6 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import DateRangePicker from "./DateRangePicker";
+
 interface ToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;
@@ -18,6 +20,9 @@ interface ToolbarProps {
   application: string;
   onApplicationChange: (value: string) => void;
 
+  sort: string;
+  onSortChange: (value: string) => void;
+
   dateFrom: string;
   dateTo: string;
   onDateFromChange: (value: string) => void;
@@ -27,6 +32,14 @@ interface ToolbarProps {
   onViewChange: (view: "grid" | "list") => void;
 }
 
+const APPS = [
+  { value: "kings-brew", label: "Kings Brew", color: "#8B5E3C" },
+  { value: "castle-kitchen", label: "Castle Kitchen", color: "#7F1D1D" },
+  { value: "byte-burger", label: "Byte Burger", color: "#DC2626" },
+  { value: "quantum-mart", label: "Quantum Mart", color: "#2563EB" },
+  { value: "trade-hub", label: "Trade Hub", color: "#22C55E" },
+];
+
 function Toolbar({
   search,
   onSearchChange,
@@ -34,6 +47,8 @@ function Toolbar({
   onStatusChange,
   application,
   onApplicationChange,
+  sort,
+  onSortChange,
   dateFrom,
   dateTo,
   onDateFromChange,
@@ -45,20 +60,18 @@ function Toolbar({
     <div
       className="
         flex
-        flex-col
-        gap-4
+        flex-wrap
+        items-center
+        gap-3
         rounded-xl
         border
         border-slate-200
         bg-white
-        p-5
+        p-3
         shadow-sm
-        lg:flex-row
-        lg:items-center
-        lg:justify-between
       "
     >
-      <div className="relative w-full lg:max-w-md">
+      <div className="relative min-w-[200px] flex-1">
         <Search
           className="
             absolute
@@ -94,84 +107,86 @@ function Toolbar({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={status} onValueChange={onStatusChange}>
-          <SelectTrigger className="h-11 w-48 rounded-xl border-slate-200">
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
+      <Select value={status} onValueChange={onStatusChange}>
+        <SelectTrigger className="h-11 w-36 rounded-xl border-slate-200">
+          <SlidersHorizontal className="mr-2 h-4 w-4" />
+          <SelectValue />
+        </SelectTrigger>
 
-            <SelectValue />
-          </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">All Status</SelectItem>
+          <SelectItem value="PENDING">Pending</SelectItem>
+          <SelectItem value="PAID">Paid</SelectItem>
+          <SelectItem value="PROCESSING">Processing</SelectItem>
+          <SelectItem value="COMPLETED">Completed</SelectItem>
+          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
 
-          <SelectContent>
-            <SelectItem value="ALL">All Status</SelectItem>
+      <Select value={application} onValueChange={onApplicationChange}>
+        <SelectTrigger className="h-11 w-40 rounded-xl border-slate-200">
+          <SelectValue />
+        </SelectTrigger>
 
-            <SelectItem value="PENDING">Pending</SelectItem>
+        <SelectContent>
+          {APPS.map((app) => (
+            <SelectItem key={app.value} value={app.value}>
+              <span className="flex items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: app.color }}
+                />
+                {app.label}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-            <SelectItem value="PAID">Paid</SelectItem>
+      <Select value={sort} onValueChange={onSortChange}>
+        <SelectTrigger className="h-11 w-36 rounded-xl border-slate-200">
+          <SelectValue />
+        </SelectTrigger>
 
-            <SelectItem value="PROCESSING">Processing</SelectItem>
+        <SelectContent>
+          <SelectItem value="latest">Latest Orders</SelectItem>
+          <SelectItem value="oldest">Oldest Orders</SelectItem>
+          <SelectItem value="highest">Highest Amount</SelectItem>
+          <SelectItem value="lowest">Lowest Amount</SelectItem>
+        </SelectContent>
+      </Select>
 
-            <SelectItem value="COMPLETED">Completed</SelectItem>
+      <DateRangePicker
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={onDateFromChange}
+        onDateToChange={onDateToChange}
+      />
 
-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onViewChange("grid")}
+          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
+            view === "grid"
+              ? "bg-slate-900 text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <LayoutGrid className="h-4 w-4" />
+          Grid
+        </button>
 
-        <Select value={application} onValueChange={onApplicationChange}>
-          <SelectTrigger className="h-11 w-56 rounded-xl border-slate-200">
-            <SelectValue />
-          </SelectTrigger>
-
-          <SelectContent>
-            <SelectItem value="kings-brew">☕ Kings Brew</SelectItem>
-            <SelectItem value="castle-kitchen">🥩 Castle Kitchen</SelectItem>
-            <SelectItem value="byte-burger">🍔 Byte Burger</SelectItem>
-            <SelectItem value="quantum-mart">🛒 Quantum Mart</SelectItem>
-            <SelectItem value="trade-hub">🏪 Trade Hub</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => onDateFromChange(e.target.value)}
-            className="w-[130px] bg-transparent text-sm outline-none"
-          />
-          <span className="text-slate-300">–</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => onDateToChange(e.target.value)}
-            className="w-[130px] bg-transparent text-sm outline-none"
-          />
-        </div>
-
-        <div className="flex items-center gap-1 rounded-xl border border-slate-200 p-1">
-          <button
-            onClick={() => onViewChange("grid")}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-              view === "grid"
-                ? "bg-primary text-white"
-                : "text-slate-500 hover:bg-slate-100"
-            }`}
-            aria-label="Grid view"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-
-          <button
-            onClick={() => onViewChange("list")}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-              view === "list"
-                ? "bg-primary text-white"
-                : "text-slate-500 hover:bg-slate-100"
-            }`}
-            aria-label="List view"
-          >
-            <List className="h-4 w-4" />
-          </button>
-        </div>
+        <button
+          onClick={() => onViewChange("list")}
+          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
+            view === "list"
+              ? "bg-slate-900 text-white"
+              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          <List className="h-4 w-4" />
+          List
+        </button>
       </div>
     </div>
   );

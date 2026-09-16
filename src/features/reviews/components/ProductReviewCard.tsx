@@ -1,10 +1,9 @@
 import { useState } from "react";
 
-import { ChevronRight, MessageSquareText, Package, Star } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Star } from "lucide-react";
 
 import ReviewModal from "./ReviewModal";
+import { timeAgo } from "../utils/timeAgo";
 
 import type { ProductReview } from "../types/product-review.type";
 
@@ -15,200 +14,109 @@ interface ProductReviewCardProps {
 function ProductReviewCard({ product }: ProductReviewCardProps) {
   const [open, setOpen] = useState(false);
 
-  const previewReviews = product.reviews.slice(0, 2);
+  const featuredReview = product.reviews[0];
 
   return (
     <>
       <div
         className="
           flex
-          h-[420px]
+          h-full
           flex-col
-          overflow-hidden
-          rounded-md
+          rounded-xl
           border
           border-slate-200
           bg-white
+          p-4
           shadow-sm
           transition-all
+          hover:-translate-y-0.5
           hover:shadow-md
         "
       >
-        <div
-          className="
-            border-b
-            border-slate-100
-            bg-gradient-to-br
-            from-amber-50
-            via-white
-            to-orange-50
-            p-3
-          "
-        >
-          <div className="flex gap-3">
-            <img
-              src={
-                product.imageUrl ||
-                "https://images.unsplash.com/photo-1510707577719-ae7c14805e0f"
-              }
-              alt={product.productName}
-              className="
-                h-20
-                w-20
-                rounded-md
-                border
-                border-slate-200
-                object-cover
-              "
-            />
+        <div className="flex gap-3">
+          <img
+            src={product.imageUrl || "https://placehold.co/112x112"}
+            alt={product.productName}
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "https://placehold.co/112x112";
+            }}
+            className="h-24 w-24 shrink-0 rounded-lg border border-slate-100 object-cover"
+          />
 
-            <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-1 text-base font-bold text-slate-900">
-                {product.productName}
-              </h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-1 font-bold text-slate-900">
+              {product.productName}
+            </h3>
 
-              <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-                {product.productDescription}
-              </p>
+            <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
+              {product.productDescription}
+            </p>
 
-              <div className="mt-3 flex items-center gap-1">
-                {Array.from({
-                  length: Math.round(product.averageRating),
-                }).map((_, index) => (
+            <div className="mt-2 flex items-center gap-1">
+              {Array.from({ length: Math.round(product.averageRating) }).map(
+                (_, index) => (
                   <Star
                     key={index}
                     className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
                   />
-                ))}
+                ),
+              )}
 
-                <span className="ml-1 text-sm font-semibold">
-                  {product.averageRating.toFixed(1)}
-                </span>
+              <span className="ml-1 text-sm font-bold text-slate-900">
+                {product.averageRating.toFixed(1)}
+              </span>
+
+              <span className="text-xs text-slate-400">
+                ({product.totalReviews} review
+                {product.totalReviews === 1 ? "" : "s"})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {featuredReview && (
+          <>
+            <div className="mt-3 rounded-lg bg-slate-50 p-3">
+              <p className="line-clamp-2 text-sm italic text-slate-600">
+                &ldquo;{featuredReview.comment}&rdquo;
+              </p>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {(featuredReview.user?.fullName ?? "A").charAt(0)}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="
-            grid
-            grid-cols-2
-            gap-2
-            border-b
-            border-slate-100
-            p-3
-          "
-        >
-          <div
-            className="
-              rounded-md
-              border
-              border-slate-100
-              bg-slate-50
-              p-2
-            "
-          >
-            <div className="flex items-center gap-2">
-              <Package className="h-3.5 w-3.5 text-violet-500" />
-
-              <span className="text-xs text-slate-500">Product Type</span>
-            </div>
-
-            <p className="mt-1 text-sm font-semibold">
-              #{product.productAppType}
-            </p>
-          </div>
-
-          <div
-            className="
-              rounded-md
-              border
-              border-slate-100
-              bg-slate-50
-              p-2
-            "
-          >
-            <div className="flex items-center gap-2">
-              <MessageSquareText className="h-3.5 w-3.5 text-blue-500" />
-
-              <span className="text-xs text-slate-500">Reviews</span>
-            </div>
-
-            <p className="mt-1 text-sm font-semibold">{product.totalReviews}</p>
-          </div>
-        </div>
-
-        <div className="flex flex-1 flex-col p-3">
-          <div className="mb-3 flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-slate-900">
-              Latest Reviews
-            </h4>
-
-            <span className="text-xs text-slate-500">
-              {product.totalReviews} Total
-            </span>
-          </div>
-
-          <div className="flex-1 space-y-2">
-            {previewReviews.map((review) => (
-              <div
-                key={review.id}
-                className="
-                  rounded-md
-                  border
-                  border-slate-100
-                  bg-slate-50
-                  p-3
-                "
-              >
-                <div className="flex items-center justify-between">
-                  <span className="truncate text-xs font-medium">
-                    {review.user?.fullName ?? `Customer #${review.userId}`}
-                  </span>
-
-                  <div className="flex gap-0.5">
-                    {Array.from({
-                      length: review.rating,
-                    }).map((_, index) => (
-                      <Star
-                        key={index}
-                        className="h-3 w-3 fill-amber-400 text-amber-400"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <p
-                  className="
-                    mt-2
-                    line-clamp-2
-                    min-h-[34px]
-                    text-xs
-                    text-slate-600
-                  "
-                >
-                  {review.comment}
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-slate-700">
+                  {featuredReview.user?.fullName ?? "Anonymous"}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  {timeAgo(featuredReview.createdAt)}
                 </p>
               </div>
-            ))}
-          </div>
+            </div>
+          </>
+        )}
 
-          <Button
-            variant="outline"
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+          <span className="rounded-md bg-violet-50 px-2 py-1 text-[11px] font-semibold text-violet-600">
+            #{product.productAppType || "PRODUCT"}
+          </span>
+
+          <button
             onClick={() => setOpen(true)}
-            className="mt-3 rounded-md"
+            className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
           >
-            View All Reviews
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
+            View all reviews
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
-      <ReviewModal
-        open={open}
-        onOpenChange={setOpen}
-        product={product}
-      />
+      <ReviewModal open={open} onOpenChange={setOpen} product={product} />
     </>
   );
 }
