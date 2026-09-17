@@ -1,20 +1,47 @@
-import { LayoutGrid, List, Search } from "lucide-react";
+import FilterBar from "@/components/shared/filters/FilterBar";
+import FilterSelect, {
+  ALL_OPTION,
+} from "@/components/shared/filters/FilterSelect";
+import SearchField from "@/components/shared/filters/SearchField";
+import ViewToggle, {
+  type FeedView,
+} from "@/components/shared/filters/ViewToggle";
 
-import { Input } from "@/components/ui/input";
+import ApplicationSelect from "@/features/applications/components/ApplicationSelect";
+
+import { REVIEW_APPLICATIONS } from "../config/review.config";
 
 interface ReviewFilterProps {
   search: string;
   application: string;
   rating: string;
   sort: string;
-  view: "grid" | "list";
+  view: FeedView;
 
   onSearchChange: (value: string) => void;
   onApplicationChange: (value: string) => void;
   onRatingChange: (value: string) => void;
   onSortChange: (value: string) => void;
-  onViewChange: (view: "grid" | "list") => void;
+  onViewChange: (view: FeedView) => void;
 }
+
+// Filters by average rating rounded down, so "4 & up" keeps a product
+// averaging 4.6 but not one averaging 3.9.
+const RATING_OPTIONS = [
+  { value: ALL_OPTION, label: "All Ratings" },
+  { value: "5", label: "⭐⭐⭐⭐⭐ 5 Stars" },
+  { value: "4", label: "⭐⭐⭐⭐ 4 & up" },
+  { value: "3", label: "⭐⭐⭐ 3 & up" },
+  { value: "2", label: "⭐⭐ 2 & up" },
+  { value: "1", label: "⭐ 1 & up" },
+];
+
+const SORT_OPTIONS = [
+  { value: "latest", label: "Latest Reviews" },
+  { value: "oldest", label: "Oldest Reviews" },
+  { value: "highest", label: "Highest Rating" },
+  { value: "lowest", label: "Lowest Rating" },
+];
 
 function ReviewFilter({
   search,
@@ -29,131 +56,35 @@ function ReviewFilter({
   onViewChange,
 }: ReviewFilterProps) {
   return (
-    <div
-      className="
-        flex
-        flex-wrap
-        items-center
-        gap-3
-        rounded-xl
-        border
-        border-slate-200
-        bg-white
-        p-3
-        shadow-sm
-      "
-    >
-      <div className="relative min-w-[280px] flex-1">
-        <Search
-          className="
-            absolute
-            left-3
-            top-1/2
-            h-4
-            w-4
-            -translate-y-1/2
-            text-slate-400
-          "
-        />
+    <FilterBar>
+      <SearchField
+        value={search}
+        onChange={onSearchChange}
+        placeholder="Search reviews or products..."
+      />
 
-        <Input
-          placeholder="Search reviews, products..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-11 rounded-xl pl-10"
-        />
-      </div>
-
-      <select
+      <ApplicationSelect
+        applications={REVIEW_APPLICATIONS}
         value={application}
-        onChange={(e) => onApplicationChange(e.target.value)}
-        className="
-          h-11
-          min-w-[170px]
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-3
-          text-sm
-        "
-      >
-        <option value="">All Applications</option>
-        <option value="kings-brew">☕ Kings Brew</option>
-        <option value="castle-kitchen">🥩 Castle Kitchen</option>
-        <option value="byte-burger">🍔 Byte Burger</option>
-        <option value="quantum-mart">🛒 Quantum Mart</option>
-        <option value="trade-hub">🏪 Trade Hub</option>
-      </select>
+        onValueChange={onApplicationChange}
+      />
 
-      <select
+      <FilterSelect
+        label="Filter by rating"
         value={rating}
-        onChange={(e) => onRatingChange(e.target.value)}
-        className="
-          h-11
-          min-w-[150px]
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-3
-          text-sm
-        "
-      >
-        <option value="">All Ratings</option>
-        <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
-        <option value="4">⭐⭐⭐⭐ 4 Stars</option>
-        <option value="3">⭐⭐⭐ 3 Stars</option>
-        <option value="2">⭐⭐ 2 Stars</option>
-        <option value="1">⭐ 1 Star</option>
-      </select>
+        onValueChange={onRatingChange}
+        options={RATING_OPTIONS}
+      />
 
-      <select
+      <FilterSelect
+        label="Sort reviews"
         value={sort}
-        onChange={(e) => onSortChange(e.target.value)}
-        className="
-          h-11
-          min-w-[160px]
-          rounded-xl
-          border
-          border-slate-200
-          bg-white
-          px-3
-          text-sm
-        "
-      >
-        <option value="latest">Latest Reviews</option>
-        <option value="oldest">Oldest Reviews</option>
-        <option value="highest">Highest Rating</option>
-        <option value="lowest">Lowest Rating</option>
-      </select>
+        onValueChange={onSortChange}
+        options={SORT_OPTIONS}
+      />
 
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => onViewChange("grid")}
-          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
-            view === "grid"
-              ? "bg-slate-900 text-white"
-              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          <LayoutGrid className="h-4 w-4" />
-          Grid
-        </button>
-
-        <button
-          onClick={() => onViewChange("list")}
-          className={`flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-medium transition-colors ${
-            view === "list"
-              ? "bg-slate-900 text-white"
-              : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          <List className="h-4 w-4" />
-          List
-        </button>
-      </div>
-    </div>
+      <ViewToggle view={view} onViewChange={onViewChange} />
+    </FilterBar>
   );
 }
 

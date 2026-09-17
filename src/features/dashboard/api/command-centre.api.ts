@@ -1,172 +1,114 @@
 import createApiClient from "@/lib/axios";
+import { unwrapList } from "@/lib/api-response";
 
-import { COMMAND_CENTRE_CONFIG } from "../config/command-centre.config";
+import type { CommandCentreApplication } from "../types/command-centre.type";
 
-export const commandCentreApi = {
-  async getDashboard() {
-    const results = await Promise.allSettled(
-      COMMAND_CENTRE_CONFIG.map(async (app) => {
-        const api = createApiClient(app.baseUrl);
+type AppRef = { name: string };
 
-        const [
-          health,
-          stats,
-          monitoring,
-          activities,
-          orders,
-          reviews,
-          favorites,
-          cart,
-          payments,
-          orderStatusHistory,
-        ] = await Promise.allSettled([
-          api.get("/health"),
-          api.get("/stats"),
-          api.get("/monitoring"),
-          api.get("/activities"),
-          api.get("/public/orders"),
-          api.get("/reviews"),
-          api.get("/public/favorites"),
-          api.get("/public/cart"),
-          api.get("/public/payments"),
-          api.get("/public/order-status-history"),
-        ]);
+/*
+ * Fallbacks used while a request is still pending or after it failed, so
+ * the dashboard cards can render the moment health and stats arrive.
+ */
 
-        return {
-          id: app.id,
-          name: app.name,
-          emoji: app.emoji,
+export const healthFallback = (app: AppRef): CommandCentreApplication["health"] => ({
+    status: "DOWN",
+    application: app.name,
+    database: "DISCONNECTED",
+    version: "-",
+    timestamp: new Date().toISOString(),
+    uptime: 0,
+  });
 
-          health:
-            health.status === "fulfilled"
-              ? health.value.data
-              : {
-                  status: "DOWN",
-                  application: app.name,
-                  database: "DISCONNECTED",
-                  version: "-",
-                  timestamp: new Date().toISOString(),
-                  uptime: 0,
-                },
+export const statsFallback = (app: AppRef): CommandCentreApplication["stats"] => ({
+    application: {
+      name: app.name,
+      type: "-",
+    },
 
-          stats:
-            stats.status === "fulfilled"
-              ? stats.value.data
-              : {
-                  application: {
-                    name: app.name,
-                    type: "-",
-                  },
+    products: {
+      total: 0,
+      active: 0,
+      inactive: 0,
+    },
 
-                  products: {
-                    total: 0,
-                    active: 0,
-                    inactive: 0,
-                  },
+    categories: {
+      total: 0,
+    },
 
-                  categories: {
-                    total: 0,
-                  },
+    images: {
+      total: 0,
+    },
 
-                  images: {
-                    total: 0,
-                  },
+    reviews: {
+      total: 0,
+      averageRating: 0,
+    },
 
-                  reviews: {
-                    total: 0,
-                    averageRating: 0,
-                  },
+    orders: {
+      total: 0,
+      pending: 0,
+      completed: 0,
+      cancelled: 0,
+    },
 
-                  orders: {
-                    total: 0,
-                    pending: 0,
-                    completed: 0,
-                    cancelled: 0,
-                  },
+    payments: {
+      total: 0,
+      success: 0,
+      failed: 0,
+    },
 
-                  payments: {
-                    total: 0,
-                    success: 0,
-                    failed: 0,
-                  },
+    favorites: {
+      total: 0,
+    },
 
-                  favorites: {
-                    total: 0,
-                  },
+    latest: {
+      product: "",
+      review: "",
+      order: "",
+    },
+  });
 
-                  latest: {
-                    product: "",
-                    review: "",
-                    order: "",
-                  },
-                },
+export const monitoringFallback = (app: AppRef): CommandCentreApplication["monitoring"] => ({
+    application: app.name,
 
-          monitoring:
-            monitoring.status === "fulfilled"
-              ? monitoring.value.data
-              : {
-                  application: app.name,
+    node: {
+      version: "-",
+      uptime: 0,
+      platform: "-",
+      environment: "-",
+    },
 
-                  node: {
-                    version: "-",
-                    uptime: 0,
-                    platform: "-",
-                    environment: "-",
-                  },
+    memory: {
+      rss: 0,
+      heapTotal: 0,
+      heapUsed: 0,
+      external: 0,
+    },
 
-                  memory: {
-                    rss: 0,
-                    heapTotal: 0,
-                    heapUsed: 0,
-                    external: 0,
-                  },
+    database: {
+      status: "DISCONNECTED",
+      latency: 0,
+    },
 
-                  database: {
-                    status: "DISCONNECTED",
-                    latency: 0,
-                  },
+    response: {
+      generatedAt: new Date().toISOString(),
+    },
+  });
 
-                  response: {
-                    generatedAt: new Date().toISOString(),
-                  },
-                },
+/** Raw body of one dashboard endpoint (e.g. /activities). */
+export async function fetchDashboardBody(baseUrl: string, path: string) {
+  const api = createApiClient(baseUrl);
 
-          activities:
-            activities.status === "fulfilled" ? activities.value.data : [],
+  const response = await api.get(path);
 
-          orders:
-            orders.status === "fulfilled" ? (orders.value.data.data ?? []) : [],
+  return response.data;
+}
 
-          reviews:
-            reviews.status === "fulfilled"
-              ? (reviews.value.data.data ?? [])
-              : [],
+/** List endpoints such as /public/favorites. */
+export async function fetchDashboardList(baseUrl: string, path: string) {
+  const api = createApiClient(baseUrl);
 
-          favorites:
-            favorites.status === "fulfilled"
-              ? (favorites.value.data.data ?? [])
-              : [],
+  const response = await api.get(path);
 
-          cart: cart.status === "fulfilled" ? (cart.value.data.data ?? []) : [],
-
-          payments:
-            payments.status === "fulfilled"
-              ? (payments.value.data.data ?? [])
-              : [],
-
-          orderStatusHistory:
-            orderStatusHistory.status === "fulfilled"
-              ? (orderStatusHistory.value.data.data ?? [])
-              : [],
-        };
-      }),
-    );
-
-    return results
-      .filter(
-        (result): result is PromiseFulfilledResult<any> =>
-          result.status === "fulfilled",
-      )
-      .map((result) => result.value);
-  },
-};
+  return unwrapList<unknown>(response.data);
+}

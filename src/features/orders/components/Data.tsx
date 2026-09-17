@@ -4,29 +4,34 @@ import { ShoppingCart } from "lucide-react";
 
 import Main from "./Main";
 import ApplicationPagination from "@/features/applications/components/ApplicationPagination";
+import FeedSkeleton from "@/components/shared/filters/FeedSkeleton";
+import { ALL_OPTION } from "@/components/shared/filters/FilterSelect";
+import type { FeedView } from "@/components/shared/filters/ViewToggle";
 
-import type { Order } from "../types/order.type";
+import type { AppOrder } from "../types/order.type";
 
 const ITEMS_PER_PAGE = 8;
 
 interface DataProps {
-  orders: Order[];
+  orders: AppOrder[];
+  isLoading?: boolean;
   search: string;
   status: string;
-  dateFrom: string;
-  dateTo: string;
+  // dateFrom: string;
+  // dateTo: string;
   sort: string;
-  view: "grid" | "list";
+  view: FeedView;
   page: number;
   onPageChange: (page: number) => void;
 }
 
 function Data({
   orders,
+  isLoading = false,
   search,
   status,
-  dateFrom,
-  dateTo,
+  // dateFrom,
+  // dateTo,
   sort,
   view,
   page,
@@ -34,7 +39,7 @@ function Data({
 }: DataProps) {
   const filteredOrders = useMemo(() => {
     let result = orders.filter((order) => {
-      const matchStatus = status === "ALL" || order.status === status;
+      const matchStatus = status === ALL_OPTION || order.status === status;
 
       const keyword = search.trim().toLowerCase();
 
@@ -43,13 +48,13 @@ function Data({
         order.orderNumber.toLowerCase().includes(keyword) ||
         order.user.fullName.toLowerCase().includes(keyword);
 
-      const orderDate = new Date(order.createdAt).getTime();
+      // const orderDate = new Date(order.createdAt).getTime();
 
-      const matchFrom = !dateFrom || orderDate >= new Date(dateFrom).getTime();
-      const matchTo =
-        !dateTo || orderDate <= new Date(dateTo).getTime() + 86400000 - 1;
+      // const matchFrom = !dateFrom || orderDate >= new Date(dateFrom).getTime();
+      // const matchTo =
+      //   !dateTo || orderDate <= new Date(dateTo).getTime() + 86400000 - 1;
 
-      return matchStatus && matchSearch && matchFrom && matchTo;
+      return matchStatus && matchSearch;
     });
 
     result = [...result];
@@ -71,7 +76,7 @@ function Data({
     }
 
     return result;
-  }, [orders, search, status, dateFrom, dateTo, sort]);
+  }, [orders, search, status, sort]);
 
   const totalPages = Math.max(
     1,
@@ -93,23 +98,35 @@ function Data({
         <div>
           <h3 className="text-base font-semibold text-slate-900">Orders</h3>
           <p className="text-xs text-slate-500">
-            Showing{" "}
-            {filteredOrders.length === 0
-              ? 0
-              : (safePage - 1) * ITEMS_PER_PAGE + 1}
-            –{Math.min(safePage * ITEMS_PER_PAGE, filteredOrders.length)} of{" "}
-            {filteredOrders.length} orders
+            {isLoading ? (
+              "Loading orders..."
+            ) : (
+              <>
+                Showing{" "}
+                {filteredOrders.length === 0
+                  ? 0
+                  : (safePage - 1) * ITEMS_PER_PAGE + 1}
+                –{Math.min(safePage * ITEMS_PER_PAGE, filteredOrders.length)} of{" "}
+                {filteredOrders.length} orders
+              </>
+            )}
           </p>
         </div>
       </div>
 
-      <Main orders={paginatedOrders} view={view} />
+      {isLoading ? (
+        <FeedSkeleton view={view} />
+      ) : (
+        <>
+          <Main orders={paginatedOrders} view={view} />
 
-      <ApplicationPagination
-        page={safePage}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
-      />
+          <ApplicationPagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
+        </>
+      )}
     </div>
   );
 }

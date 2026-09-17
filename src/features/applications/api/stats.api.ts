@@ -1,31 +1,40 @@
 import createApiClient from "@/lib/axios";
 
+export type StatsResponse = Record<string, unknown>;
+
 /**
- * GET /stats responses look like:
+ * Stats responses look like:
  *   { success: true, application: {...}, products: { total: 42 }, ... }
  * — the counts sit directly on the body, not under a `data` key like
  * every other endpoint. So this doesn't go through unwrapList/unwrapItem.
  */
 export const statsApi = {
-  async get(baseUrl: string): Promise<Record<string, any>> {
+  /**
+   * @param endpoint The app's stats path from `statsEndpoint` in
+   *   application.config.ts (usually "/stats").
+   */
+  async get(baseUrl: string, endpoint: string): Promise<StatsResponse> {
     const api = createApiClient(baseUrl);
 
-    const response = await api.get("/stats");
+    const response = await api.get(endpoint);
 
-    return response.data ?? {};
+    const body: unknown = response.data;
+
+    return body && typeof body === "object" ? (body as StatsResponse) : {};
   },
 };
 
 /** Reads a dot-path like "products.total" out of a stats object. */
 export function getStatValue(
-  stats: Record<string, any> | undefined,
+  stats: StatsResponse | undefined,
   path: string,
 ): number | undefined {
   if (!stats) return undefined;
 
-  const value = path
-    .split(".")
-    .reduce<any>((acc, key) => (acc == null ? undefined : acc[key]), stats);
+  const value = path.split(".").reduce<unknown>((acc, key) => {
+    if (acc === null || typeof acc !== "object") return undefined;
+    return (acc as Record<string, unknown>)[key];
+  }, stats);
 
   return typeof value === "number" ? value : undefined;
 }

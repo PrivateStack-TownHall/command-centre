@@ -1,11 +1,14 @@
 import ProductReviewCard from "./ProductReviewCard";
 import ReviewListRow from "./ReviewListRow";
 
+import { FEED_GRID_CLASS } from "@/components/shared/filters/FeedSkeleton";
+import type { FeedView } from "@/components/shared/filters/ViewToggle";
+
 import type { ProductReview } from "../types/product-review.type";
 
 interface ReviewFeedProps {
   products: ProductReview[];
-  view: "grid" | "list";
+  view: FeedView;
 }
 
 function ReviewFeed({ products, view }: ReviewFeedProps) {
@@ -34,23 +37,16 @@ function ReviewFeed({ products, view }: ReviewFeedProps) {
     return (
       <div className="space-y-3">
         {products.map((product) => (
-          <ReviewListRow key={product.productId} product={product} />
+          <ReviewListRow key={product.key} product={product} />
         ))}
       </div>
     );
   }
 
   return (
-    <div
-      className="
-        grid
-        gap-4
-        md:grid-cols-2
-        xl:grid-cols-4
-      "
-    >
+    <div className={FEED_GRID_CLASS}>
       {products.map((product) => (
-        <ProductReviewCard key={product.productId} product={product} />
+        <ProductReviewCard key={product.key} product={product} />
       ))}
     </div>
   );

@@ -1,23 +1,38 @@
-import PageHeader from "@/components/shared/page/PageHeader";
-import Loading from "@/components/shared/Loading";
-import ErrorState from "@/components/shared/state/ErrorState";
+import { useQuery } from "@tanstack/react-query";
 
-import { useCommandCentre } from "@/features/dashboard/hooks/useCommandCentre";
-import { APPLICATIONS } from "@/lib/constants";
+import PageHeader from "@/components/shared/page/PageHeader";
+
+import { APPLICATION_CONFIG } from "@/features/applications/config/application.config";
 
 import { useAuditLogs } from "../hooks/useAuditLogs";
+import { useApplicationsHealth } from "../hooks/useApplicationsHealth";
+import { fetchMonitoring, monitoringQueryKey } from "../api/health.api";
+import { summarizeHealth } from "../utils/health-rows";
 
 import MonitoringStats from "../components/MonitoringStats";
 import AuditLogsCard from "../components/AuditLogsCard";
 import ApplicationsTable from "../components/ApplicationsTable";
 import InfrastructureCard from "../components/InfrastructureCard";
 
+// GET /monitoring (database status) only exists on Kings Brew today.
+const MONITORED_APP = APPLICATION_CONFIG["kings-brew"];
+
 function MonitoringPage() {
-  const { data, isLoading, isError } = useCommandCentre();
   const { data: auditLogs, isLoading: auditLoading } = useAuditLogs();
 
-  const kingsBrew = data?.[0];
-  const isUp = kingsBrew?.health.status === "UP";
+  // One health query per application — rows fill in as each backend wakes.
+  const healthRows = useApplicationsHealth();
+  const summary = summarizeHealth(healthRows);
+
+  const monitoringQuery = useQuery({
+    queryKey: monitoringQueryKey("kings-brew"),
+    queryFn: () => fetchMonitoring(MONITORED_APP.app.url),
+    enabled: !!MONITORED_APP.app.url,
+  });
+
+  const database = monitoringQuery.data?.database as
+    | { status?: string }
+    | undefined;
 
   return (
     <div className="space-y-6">
@@ -27,49 +42,23 @@ function MonitoringPage() {
           description="Real-time monitoring, system and health status, audit logs, and infrastructure overview."
         />
 
-        {!isLoading && !isError && (
-          <MonitoringStats
-            total={APPLICATIONS.length}
-            online={isUp ? 1 : 0}
-            warning={0}
-            offline={kingsBrew && !isUp ? 1 : 0}
-          />
-        )}
+        <MonitoringStats
+          total={summary.total}
+          online={summary.online}
+          warning={summary.waking}
+          offline={summary.offline}
+        />
       </div>
 
-      {isLoading && <Loading label="Loading monitoring data..." />}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <AuditLogsCard logs={auditLogs?.data ?? []} isLoading={auditLoading} />
 
-      {!isLoading && isError && (
-        <ErrorState description="Couldn't load monitoring data from Kings Brew." />
-      )}
+        <div className="space-y-6">
+          <ApplicationsTable rows={healthRows} />
 
-      {!isLoading && !isError && (
-        <div className="grid gap-6 xl:grid-cols-2">
-          <AuditLogsCard
-            logs={auditLogs?.data ?? []}
-            isLoading={auditLoading}
-          />
-
-          <div className="space-y-6">
-            <ApplicationsTable
-              totalCount={APPLICATIONS.length}
-              kingsBrew={
-                kingsBrew
-                  ? {
-                      status: kingsBrew.health.status,
-                      uptimeSeconds: kingsBrew.health.uptime,
-                      latencyMs: kingsBrew.monitoring.database.latency,
-                    }
-                  : undefined
-              }
-            />
-
-            <InfrastructureCard
-              databaseStatus={kingsBrew?.monitoring.database.status}
-            />
-          </div>
+          <InfrastructureCard databaseStatus={database?.status} />
         </div>
-      )}
+      </div>
     </div>
   );
 }

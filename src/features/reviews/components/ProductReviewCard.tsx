@@ -51,6 +51,10 @@ function ProductReviewCard({ product }: ProductReviewCardProps) {
               {product.productName}
             </h3>
 
+            <p className="mt-0.5 text-xs text-slate-500">
+              {product.appEmoji} {product.appName}
+            </p>
+
             <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
               {product.productDescription}
             </p>
@@ -80,9 +84,15 @@ function ProductReviewCard({ product }: ProductReviewCardProps) {
         {featuredReview && (
           <>
             <div className="mt-3 rounded-lg bg-slate-50 p-3">
-              <p className="line-clamp-2 text-sm italic text-slate-600">
-                &ldquo;{featuredReview.comment}&rdquo;
-              </p>
+              {featuredReview.comment ? (
+                <p className="line-clamp-2 text-sm italic text-slate-600">
+                  &ldquo;{featuredReview.comment}&rdquo;
+                </p>
+              ) : (
+                <p className="line-clamp-2 text-sm text-slate-400">
+                  Rated without a comment
+                </p>
+              )}
             </div>
 
             <div className="mt-3 flex items-center gap-2">

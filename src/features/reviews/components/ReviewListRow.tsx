@@ -52,6 +52,9 @@ function ReviewListRow({ product }: ReviewListRowProps) {
           <p className="truncate text-sm text-slate-500">
             {product.productDescription}
           </p>
+          <p className="truncate text-xs text-slate-400">
+            {product.appEmoji} {product.appName}
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 text-amber-500">

@@ -1,29 +1,23 @@
 import createApiClient from "@/lib/axios";
 import { unwrapList } from "@/lib/api-response";
 
-import { APPLICATION_CONFIG } from "@/features/applications/config/application.config";
-import type { ApplicationId } from "@/features/applications/config/application.config";
+import type { PublicFeatureApplication } from "@/features/applications/utils/public-endpoints";
 
-import type { Order } from "../types/order.type";
+import type { AppOrder, Order } from "../types/order.type";
 
-export const ordersApi = {
-  async getAll(appId: string): Promise<Order[]> {
-    const config = APPLICATION_CONFIG[appId as ApplicationId];
+/** Public orders of one application, tagged with where they came from.
+ *  Throws on failure so the query can retry a sleeping backend. */
+export async function fetchApplicationOrders(
+  app: PublicFeatureApplication,
+): Promise<AppOrder[]> {
+  const api = createApiClient(app.baseUrl);
 
-    if (!config?.app.url) {
-      return [];
-    }
+  const response = await api.get(app.endpoint as string);
 
-    try {
-      const api = createApiClient(config.app.url);
-
-      const response = await api.get("/public/orders");
-
-      return unwrapList<Order>(response.data);
-    } catch (error) {
-      console.error(`Failed to fetch orders from ${appId}`, error);
-
-      return [];
-    }
-  },
-};
+  return unwrapList<Order>(response.data).map((order) => ({
+    ...order,
+    appId: app.id,
+    appName: app.name,
+    appEmoji: app.emoji,
+  }));
+}

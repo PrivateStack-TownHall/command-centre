@@ -3,7 +3,8 @@ export interface Review {
   userId: number;
   productId: number;
   rating: number;
-  comment: string;
+  /** Optional in every backend's CreateReviewDto — may be null/missing. */
+  comment?: string | null;
   createdAt?: string;
 
   user?: {
@@ -17,5 +18,14 @@ export interface Review {
     name: string;
     description?: string;
     imageUrl?: string;
+    appType?: string;
+    images?: { imageUrl: string }[];
   };
+}
+
+/** A review tagged with the application it was fetched from. */
+export interface AppReview extends Review {
+  appId: string;
+  appName: string;
+  appEmoji: string;
 }

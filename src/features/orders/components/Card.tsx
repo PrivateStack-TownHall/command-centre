@@ -2,10 +2,10 @@ import { useState } from "react";
 
 import OrderModal from "./Modal";
 
-import type { Order } from "../types/order.type";
+import type { AppOrder } from "../types/order.type";
 
 interface CardProps {
-  order: Order;
+  order: AppOrder;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -81,6 +81,9 @@ function Card({ order }: CardProps) {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {order.appEmoji} {order.appName}
             </p>
           </div>
 

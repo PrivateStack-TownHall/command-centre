@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 
+import { REQUEST_TIMEOUT_MS } from "./http-retry";
+
 const clientCache = new Map<string, AxiosInstance>();
 
 const createApiClient = (baseURL: string): AxiosInstance => {
@@ -16,7 +18,8 @@ const createApiClient = (baseURL: string): AxiosInstance => {
       "Content-Type": "application/json",
     },
 
-    timeout: 10000,
+    // A sleeping Render instance can take ~1 minute to answer.
+    timeout: REQUEST_TIMEOUT_MS,
   });
 
   clientCache.set(baseURL, client);

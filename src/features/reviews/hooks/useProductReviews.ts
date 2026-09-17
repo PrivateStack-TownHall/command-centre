@@ -1,13 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { usePublicFeatureData } from "@/features/applications/hooks/usePublicFeatureData";
 
-import { reviewsApi } from "../api/reviews.api";
+import { fetchApplicationReviews } from "../api/reviews.api";
+import { REVIEW_APPLICATIONS } from "../config/review.config";
 
+/** Reviews from every application with a live reviews endpoint. */
 export function useProductReviews() {
-  return useQuery({
-    queryKey: ["reviews"],
-
-    queryFn: reviewsApi.getAll,
-
-    staleTime: 1000 * 60 * 5,
-  });
+  return usePublicFeatureData(
+    "reviews",
+    REVIEW_APPLICATIONS,
+    fetchApplicationReviews,
+  );
 }

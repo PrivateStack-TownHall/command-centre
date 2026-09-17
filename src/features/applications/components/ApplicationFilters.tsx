@@ -1,20 +1,29 @@
 import { memo, useEffect, useState } from "react";
 
-import { Input } from "@/components/ui/input";
+import FilterBar from "@/components/shared/filters/FilterBar";
+import FilterSelect, {
+  ALL_OPTION,
+} from "@/components/shared/filters/FilterSelect";
+import SearchField from "@/components/shared/filters/SearchField";
 
 interface ApplicationFiltersProps {
   search: string;
+  /** Empty string means "all". */
   categoryId: string;
   sort: string;
   order: string;
   entityPluralName?: string;
-  /** Only the paginated main-entity resource supports server-side
-   *  category/sort/order params — other resources just get the search box. */
-  showAdvanced?: boolean;
+  /** Show the category dropdown — only for resources whose endpoint
+   *  accepts a category-style param (see `params.category` in config). */
+  showCategory?: boolean;
+  /** Show sort & order — only for resources with server-side sorting. */
+  showSort?: boolean;
   /** Category options for the dropdown — { id, name } pulled from the
    *  app's own Categories resource, so people pick a name instead of
    *  having to know/guess a raw numeric id. */
   categories?: { id: number | string; name: string }[];
+  /** Plural name of the option list, e.g. "Categories" or "Genres". */
+  categoryLabel?: string;
 
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
@@ -22,14 +31,28 @@ interface ApplicationFiltersProps {
   onOrderChange: (value: string) => void;
 }
 
+const SORT_OPTIONS = [
+  { value: "createdAt", label: "Created At" },
+  { value: "name", label: "Name" },
+  { value: "price", label: "Price" },
+  { value: "stock", label: "Stock" },
+];
+
+const ORDER_OPTIONS = [
+  { value: "desc", label: "Descending" },
+  { value: "asc", label: "Ascending" },
+];
+
 function ApplicationFilters({
   search,
   categoryId,
   sort,
   order,
   entityPluralName = "items",
-  showAdvanced = true,
+  showCategory = false,
+  showSort = false,
   categories = [],
+  categoryLabel = "Categories",
   onSearchChange,
   onCategoryChange,
   onSortChange,
@@ -55,101 +78,48 @@ function ApplicationFilters({
   }, [localSearch]);
 
   return (
-    <div
-      className="
-        mb-2
-        flex
-        w-full
-        flex-wrap
-        items-center
-        gap-3
-        rounded-md
-        border
-        border-slate-200
-        bg-slate-50/50
-        p-2
-      "
-    >
-      <Input
-        placeholder={`Search ${entityPluralName.toLowerCase()}...`}
+    <FilterBar>
+      <SearchField
         value={localSearch}
-        onChange={(e) => setLocalSearch(e.target.value)}
-        className="
-          min-w-[280px]
-          flex-1
-          border-slate-200
-          bg-white
-          focus-visible:border-ring focus-visible:ring-[0.5px] focus-visible:ring-ring/50
-        "
+        onChange={setLocalSearch}
+        placeholder={`Search ${entityPluralName.toLowerCase()}...`}
       />
 
-      {showAdvanced && (
+      {showCategory && (
+        <FilterSelect
+          label={`Filter by ${categoryLabel.toLowerCase()}`}
+          value={categoryId || ALL_OPTION}
+          onValueChange={(value) =>
+            onCategoryChange(value === ALL_OPTION ? "" : value)
+          }
+          options={[
+            { value: ALL_OPTION, label: `All ${categoryLabel}` },
+            ...categories.map((category) => ({
+              value: String(category.id),
+              label: category.name,
+            })),
+          ]}
+        />
+      )}
+
+      {showSort && (
         <>
-          <select
-            value={categoryId}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            className="
-              h-10
-              min-w-[180px]
-              rounded-md
-              border
-              border-slate-200
-              bg-white
-              px-3
-              text-sm
-              text-slate-700
-            "
-          >
-            <option value="">All Categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={String(category.id)}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          <select
+          <FilterSelect
+            label="Sort by"
             value={sort}
-            onChange={(e) => onSortChange(e.target.value)}
-            className="
-              h-10
-              min-w-[160px]
-              rounded-md
-              border
-              border-slate-200
-              bg-white
-              px-3
-              text-sm
-              text-slate-700
-            "
-          >
-            <option value="createdAt">Created At</option>
-            <option value="name">Name</option>
-            <option value="price">Price</option>
-            <option value="stock">Stock</option>
-          </select>
+            onValueChange={onSortChange}
+            options={SORT_OPTIONS}
+          />
 
-          <select
+          <FilterSelect
+            label="Sort direction"
             value={order}
-            onChange={(e) => onOrderChange(e.target.value)}
-            className="
-              h-10
-              min-w-[160px]
-              rounded-md
-              border
-              border-slate-200
-              bg-white
-              px-3
-              text-sm
-              text-slate-700
-            "
-          >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
+            onValueChange={onOrderChange}
+            options={ORDER_OPTIONS}
+          />
         </>
       )}
-    </div>
+    </FilterBar>
   );
 }
 

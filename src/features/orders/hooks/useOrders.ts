@@ -1,17 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { usePublicFeatureData } from "@/features/applications/hooks/usePublicFeatureData";
 
-import { ordersApi } from "../api/orders.api";
+import { fetchApplicationOrders } from "../api/orders.api";
+import { ORDER_APPLICATIONS } from "../config/order.config";
 
-export function useOrders(appId: string) {
-  return useQuery({
-    queryKey: ["orders", appId],
-
-    queryFn: () => ordersApi.getAll(appId),
-
-    enabled: !!appId,
-
-    staleTime: 1000 * 60 * 5,
-
-    refetchOnWindowFocus: false,
-  });
+/** Public orders from every application with a live orders endpoint. */
+export function useOrders() {
+  return usePublicFeatureData("orders", ORDER_APPLICATIONS, fetchApplicationOrders);
 }

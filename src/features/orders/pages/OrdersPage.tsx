@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import PageHeader from "@/components/shared/page/PageHeader";
+import { StatsSkeleton } from "@/components/shared/filters/FeedSkeleton";
+import { ALL_OPTION } from "@/components/shared/filters/FilterSelect";
+import type { FeedView } from "@/components/shared/filters/ViewToggle";
+
+import ApplicationLoadStatus from "@/features/applications/components/ApplicationLoadStatus";
 
 import Data from "../components/Data";
 import Statistics from "../components/Statistics";
@@ -10,29 +15,26 @@ import { useOrders } from "../hooks/useOrders";
 
 function OrdersPage() {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("ALL");
-  const [application, setApplication] = useState("kings-brew");
+  const [status, setStatus] = useState(ALL_OPTION);
+  const [application, setApplication] = useState(ALL_OPTION);
   const [sort, setSort] = useState("latest");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  // const [dateFrom, setDateFrom] = useState("");
+  // const [dateTo, setDateTo] = useState("");
+  const [view, setView] = useState<FeedView>("grid");
   const [page, setPage] = useState(1);
 
-  // Only Kings Brew has a real /public/orders endpoint today — switching
-  // the dropdown to another app returns an empty list gracefully rather
-  // than erroring, until that app exposes the same public endpoint.
-  const { data: orders = [], isLoading } = useOrders(application);
+  // Orders from every app with a live `publicEndpoints.orders` (see
+  // application.config.ts); apps still "Coming soon" can't be picked.
+  const { data: orders, isLoading, statuses, retryFailed } = useOrders();
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Orders"
-          description="Monitor customer orders across the Entrepreneur Topics Ecosystem."
-        />
-      </div>
-    );
-  }
+  // Stats follow the application filter, like on the Reviews page.
+  const applicationOrders = useMemo(
+    () =>
+      application === ALL_OPTION
+        ? orders
+        : orders.filter((order) => order.appId === application),
+    [orders, application],
+  );
 
   return (
     <div className="space-y-6">
@@ -42,7 +44,11 @@ function OrdersPage() {
           description="Monitor customer orders across the Entrepreneur Topics Ecosystem."
         />
 
-        <Statistics orders={orders} />
+        {isLoading ? (
+          <StatsSkeleton />
+        ) : (
+          <Statistics orders={applicationOrders} />
+        )}
       </div>
 
       <Toolbar
@@ -62,27 +68,33 @@ function OrdersPage() {
           setPage(1);
         }}
         sort={sort}
-        onSortChange={setSort}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={(value) => {
-          setDateFrom(value);
+        onSortChange={(value) => {
+          setSort(value);
           setPage(1);
         }}
-        onDateToChange={(value) => {
-          setDateTo(value);
-          setPage(1);
-        }}
+        // dateFrom={dateFrom}
+        // dateTo={dateTo}
+        // onDateFromChange={(value) => {
+        //   setDateFrom(value);
+        //   setPage(1);
+        // }}
+        // onDateToChange={(value) => {
+        //   setDateTo(value);
+        //   setPage(1);
+        // }}
         view={view}
         onViewChange={setView}
       />
 
+      <ApplicationLoadStatus statuses={statuses} onRetry={retryFailed} />
+
       <Data
-        orders={orders}
+        orders={applicationOrders}
+        isLoading={isLoading}
         search={search}
         status={status}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
+        // dateFrom={dateFrom}
+        // dateTo={dateTo}
         sort={sort}
         view={view}
         page={page}

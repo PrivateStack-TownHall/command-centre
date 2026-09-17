@@ -74,3 +74,15 @@ export interface Order {
 
   histories: OrderHistory[];
 }
+
+/** An order tagged with the application it was fetched from. */
+export interface AppOrder extends Order {
+  appId: string;
+  appName: string;
+  appEmoji: string;
+}
+
+/** Order ids are only unique inside one backend. */
+export function orderKey(order: AppOrder): string {
+  return `${order.appId}:${order.id}`;
+}

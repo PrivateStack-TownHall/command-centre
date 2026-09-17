@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 
 import PageHeader from "@/components/shared/page/PageHeader";
+import FeedSkeleton, {
+  StatsSkeleton,
+} from "@/components/shared/filters/FeedSkeleton";
+import { ALL_OPTION } from "@/components/shared/filters/FilterSelect";
+import type { FeedView } from "@/components/shared/filters/ViewToggle";
 
+import ApplicationLoadStatus from "@/features/applications/components/ApplicationLoadStatus";
 import ApplicationPagination from "@/features/applications/components/ApplicationPagination";
 
 import ReviewFeed from "../components/ReviewFeed";
@@ -10,91 +16,65 @@ import ReviewStats from "../components/ReviewStats";
 
 import { useProductReviews } from "../hooks/useProductReviews";
 
-import type { ProductReview } from "../types/product-review.type";
+import {
+  averageRatingOf,
+  groupReviewsByProduct,
+  sortProductReviews,
+} from "../utils/group-reviews";
 
 const ITEMS_PER_PAGE = 8;
 
 function ReviewPage() {
   const [search, setSearch] = useState("");
-  const [application, setApplication] = useState("");
-  const [rating, setRating] = useState("");
+  const [application, setApplication] = useState(ALL_OPTION);
+  const [rating, setRating] = useState(ALL_OPTION);
   const [sort, setSort] = useState("latest");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<FeedView>("grid");
   const [page, setPage] = useState(1);
 
-  const { data: reviews = [], isLoading } = useProductReviews();
+  const {
+    data: reviews,
+    isLoading,
+    statuses,
+    retryFailed,
+  } = useProductReviews();
 
-  const products = useMemo<ProductReview[]>(() => {
-    const grouped = new Map<number, ProductReview>();
+  // Stats follow the application filter, like on the Orders page.
+  const applicationReviews = useMemo(
+    () =>
+      application === ALL_OPTION
+        ? reviews
+        : reviews.filter((review) => review.appId === application),
+    [reviews, application],
+  );
 
-    reviews.forEach((review: any) => {
-      const productId = review.productId;
-
-      if (!grouped.has(productId)) {
-        grouped.set(productId, {
-          productId,
-          productName: review.product?.name ?? `Product #${productId}`,
-
-          productDescription: review.product?.description ?? "",
-          productAppType: review.product?.appType ?? "",
-          imageUrl: review.product?.images?.[0]?.imageUrl ?? "",
-          reviewUser: review.user?.fullName ?? "Anonymous",
-          averageRating: 0,
-          totalReviews: 0,
-          appId: review.appId,
-          appName: review.appName,
-          appEmoji: review.appEmoji,
-          reviews: [],
-        });
-      }
-
-      grouped.get(productId)?.reviews.push(review);
-    });
-
-    return Array.from(grouped.values()).map((product) => ({
-      ...product,
-
-      totalReviews: product.reviews.length,
-
-      averageRating:
-        product.reviews.reduce((acc, review) => acc + review.rating, 0) /
-        product.reviews.length,
-    }));
-  }, [reviews]);
+  const products = useMemo(
+    () => groupReviewsByProduct(applicationReviews),
+    [applicationReviews],
+  );
 
   const filteredProducts = useMemo(() => {
-    let result = [...products];
+    let result = products;
+    const keyword = search.trim().toLowerCase();
 
-    if (application) {
-      result = result.filter((product) => product.appId === application);
-    }
-
-    if (search) {
+    if (keyword) {
       result = result.filter(
         (product) =>
-          product.productName.toLowerCase().includes(search.toLowerCase()) ||
+          product.productName.toLowerCase().includes(keyword) ||
           product.reviews.some((review) =>
-            review.comment.toLowerCase().includes(search.toLowerCase()),
+            (review.comment ?? "").toLowerCase().includes(keyword),
           ),
       );
     }
 
-    if (rating) {
+    if (rating !== ALL_OPTION) {
       result = result.filter(
         (product) => Math.floor(product.averageRating) >= Number(rating),
       );
     }
 
-    if (sort === "highest") {
-      result.sort((a, b) => b.averageRating - a.averageRating);
-    }
-
-    if (sort === "lowest") {
-      result.sort((a, b) => a.averageRating - b.averageRating);
-    }
-
-    return result;
-  }, [products, application, search, rating, sort]);
+    return sortProductReviews(result, sort);
+  }, [products, search, rating, sort]);
 
   const totalPages = Math.max(
     1,
@@ -107,27 +87,12 @@ function ReviewPage() {
     safePage * ITEMS_PER_PAGE,
   );
 
-  const totalReviews = products.reduce(
-    (acc, product) => acc + product.totalReviews,
-    0,
+  // Weighted by review, not by product — a product with 1 review must not
+  // count as much as a product with 50.
+  const averageRating = useMemo(
+    () => averageRatingOf(applicationReviews),
+    [applicationReviews],
   );
-
-  const averageRating =
-    products.length > 0
-      ? products.reduce((acc, product) => acc + product.averageRating, 0) /
-        products.length
-      : 0;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Reviews"
-          description="Real reviews from across our ecosystem."
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -137,11 +102,15 @@ function ReviewPage() {
           description="Real reviews from across our ecosystem."
         />
 
-        <ReviewStats
-          totalReviews={totalReviews}
-          averageRating={averageRating}
-          totalProducts={products.length}
-        />
+        {isLoading ? (
+          <StatsSkeleton />
+        ) : (
+          <ReviewStats
+            totalReviews={applicationReviews.length}
+            averageRating={averageRating}
+            totalProducts={products.length}
+          />
+        )}
       </div>
 
       <ReviewFilter
@@ -162,17 +131,28 @@ function ReviewPage() {
           setRating(value);
           setPage(1);
         }}
-        onSortChange={setSort}
+        onSortChange={(value) => {
+          setSort(value);
+          setPage(1);
+        }}
         onViewChange={setView}
       />
 
-      <ReviewFeed products={paginatedProducts} view={view} />
+      <ApplicationLoadStatus statuses={statuses} onRetry={retryFailed} />
 
-      <ApplicationPagination
-        page={safePage}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+      {isLoading ? (
+        <FeedSkeleton view={view} />
+      ) : (
+        <>
+          <ReviewFeed products={paginatedProducts} view={view} />
+
+          <ApplicationPagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </>
+      )}
     </div>
   );
 }

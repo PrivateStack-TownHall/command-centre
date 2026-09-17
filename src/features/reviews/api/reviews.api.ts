@@ -1,48 +1,23 @@
 import createApiClient from "@/lib/axios";
 import { unwrapList } from "@/lib/api-response";
 
-import { REVIEW_APPLICATIONS } from "../config/review.config";
+import type { PublicFeatureApplication } from "@/features/applications/utils/public-endpoints";
 
-export const reviewsApi = {
-  async getAll() {
-    const results = await Promise.allSettled(
-      REVIEW_APPLICATIONS.map(async (appId) => {
-        try {
-          const { APPLICATION_CONFIG } =
-            await import("@/features/applications/config/application.config");
+import type { AppReview, Review } from "../types/review.type";
 
-          const config = APPLICATION_CONFIG[appId];
+/** Reviews of one application, tagged with where they came from.
+ *  Throws on failure so the query can retry a sleeping backend. */
+export async function fetchApplicationReviews(
+  app: PublicFeatureApplication,
+): Promise<AppReview[]> {
+  const api = createApiClient(app.baseUrl);
 
-          const reviewsResource = config.resources.find(
-            (r) => r.key === "reviews",
-          );
+  const response = await api.get(app.endpoint as string);
 
-          if (!config.app.url || !reviewsResource) {
-            return [];
-          }
-
-          const api = createApiClient(config.app.url);
-
-          const response = await api.get(reviewsResource.endpoint);
-
-          const reviews = unwrapList<Record<string, unknown>>(response.data);
-
-          return reviews.map((review) => ({
-            ...review,
-            appId,
-            appName: config.app.name,
-            appEmoji: config.emoji,
-          }));
-        } catch (error) {
-          console.error(`Failed to fetch reviews from ${appId}`, error);
-
-          return [];
-        }
-      }),
-    );
-
-    return results.flatMap((result) =>
-      result.status === "fulfilled" ? result.value : [],
-    );
-  },
-};
+  return unwrapList<Review>(response.data).map((review) => ({
+    ...review,
+    appId: app.id,
+    appName: app.name,
+    appEmoji: app.emoji,
+  }));
+}

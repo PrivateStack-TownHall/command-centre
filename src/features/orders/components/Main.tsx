@@ -1,11 +1,14 @@
 import OrderCard from "./Card";
 import CardRow from "./CardRow";
 
-import type { Order } from "../types/order.type";
+import { FEED_GRID_CLASS } from "@/components/shared/filters/FeedSkeleton";
+import type { FeedView } from "@/components/shared/filters/ViewToggle";
+
+import { orderKey, type AppOrder } from "../types/order.type";
 
 interface MainProps {
-  orders: Order[];
-  view: "grid" | "list";
+  orders: AppOrder[];
+  view: FeedView;
 }
 
 function Main({ orders, view }: MainProps) {
@@ -39,23 +42,16 @@ function Main({ orders, view }: MainProps) {
     return (
       <div className="space-y-3">
         {orders.map((order) => (
-          <CardRow key={order.id} order={order} />
+          <CardRow key={orderKey(order)} order={order} />
         ))}
       </div>
     );
   }
 
   return (
-    <div
-      className="
-        grid
-        gap-5
-        sm:grid-cols-2
-        xl:grid-cols-4
-      "
-    >
+    <div className={FEED_GRID_CLASS}>
       {orders.map((order) => (
-        <OrderCard key={order.id} order={order} />
+        <OrderCard key={orderKey(order)} order={order} />
       ))}
     </div>
   );

@@ -40,7 +40,7 @@ function ReviewModal({ open, onOpenChange, product }: ReviewModalProps) {
       const keyword = search.toLowerCase();
       result = result.filter(
         (review) =>
-          review.comment.toLowerCase().includes(keyword) ||
+          (review.comment ?? "").toLowerCase().includes(keyword) ||
           (review.user?.fullName ?? "").toLowerCase().includes(keyword),
       );
     }
@@ -264,7 +264,7 @@ function ReviewModal({ open, onOpenChange, product }: ReviewModalProps) {
                 )}
 
                 {paginatedReviews.map((review) => {
-                  const tags = extractTags(review.comment);
+                  const tags = extractTags(review.comment ?? "");
 
                   return (
                     <div
@@ -299,9 +299,15 @@ function ReviewModal({ open, onOpenChange, product }: ReviewModalProps) {
                         </div>
                       </div>
 
-                      <p className="mt-3 text-sm italic text-slate-600">
-                        &ldquo;{review.comment}&rdquo;
-                      </p>
+                      {review.comment ? (
+                        <p className="mt-3 text-sm italic text-slate-600">
+                          &ldquo;{review.comment}&rdquo;
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-sm text-slate-400">
+                          Rated without a comment
+                        </p>
+                      )}
 
                       {tags.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">

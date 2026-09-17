@@ -47,7 +47,7 @@ export default function MonitoringStats({
           <p className="text-xl font-bold leading-none text-slate-900">
             {warning}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Warning</p>
+          <p className="mt-1 text-xs text-slate-500">Waking up</p>
         </div>
       </div>
 

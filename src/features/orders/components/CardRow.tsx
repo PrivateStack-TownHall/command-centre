@@ -10,10 +10,10 @@ import {
 
 import OrderModal from "./Modal";
 
-import type { Order } from "../types/order.type";
+import type { AppOrder } from "../types/order.type";
 
 interface CardRowProps {
-  order: Order;
+  order: AppOrder;
 }
 
 function CardRow({ order }: CardRowProps) {
@@ -62,6 +62,9 @@ function CardRow({ order }: CardRowProps) {
             </p>
             <p className="truncate text-sm text-slate-500">
               {order.user.fullName} · {order.items.length} item(s)
+            </p>
+            <p className="truncate text-xs text-slate-400">
+              {order.appEmoji} {order.appName}
             </p>
           </div>
         </div>

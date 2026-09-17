@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
+import { Tabs as TabsPrimitive } from "radix-ui";
 import { Navigate, useParams } from "react-router-dom";
 
 import PageContainer from "@/components/shared/page/PageContainer";
 import PageHeader from "@/components/shared/page/PageHeader";
-import EntityTabs from "@/components/shared/entity/EntityTabs";
 import DetailPanel from "@/components/shared/detail-panel/DetailPanel";
 import DetailPanelHeader from "@/components/shared/detail-panel/DetailPanelHeader";
 import Loading from "@/components/shared/Loading";
@@ -20,6 +21,7 @@ import ResourceStatCards from "../components/ResourceStatCards";
 import {
   APPLICATION_CONFIG,
   type ApplicationId,
+  type ResourceConfig,
 } from "../config/application.config";
 
 import {
@@ -29,12 +31,31 @@ import {
   HIDDEN_FIELDS,
 } from "../columns/createAutoColumns";
 import { useApplicationResource } from "../hooks/useApplicationResource";
+import {
+  buildResourceParams,
+  filterRowsBySearch,
+} from "../utils/resource-query";
 import { useApplicationStats } from "../hooks/useApplicationStats";
-import { getStatValue } from "../api/stats.api";
+import type { ResourceParams } from "../api/resource.api";
+import { buildStatCards } from "../utils/stat-cards";
 
 import ResourceTab from "../tabs/ResourceTab";
 
 const ITEMS_PER_PAGE = 10;
+
+// Stable fallback so `resources` keeps the same identity between renders
+// (a fresh `[]` each render would invalidate every memo that depends on it).
+const NO_RESOURCES: ResourceConfig[] = [];
+const NO_ROWS: unknown[] = [];
+
+const COUNT_ONLY_PARAMS: ResourceParams = { page: 1, limit: 1 };
+
+const DEFAULT_FILTERS = {
+  search: "",
+  categoryId: "",
+  sort: "createdAt",
+  order: "desc",
+};
 
 /**
  * Generic page for every application in APPLICATION_CONFIG. Tabs are
@@ -47,22 +68,24 @@ const ITEMS_PER_PAGE = 10;
  * show up even for tabs that haven't been opened yet; apps without
  * /stats fall back to showing a count only once a tab has been visited.
  */
-function ApplicationPage() {
-  const { appId } = useParams<{ appId: string }>();
-
+function ApplicationPageContent({ appId }: { appId: string | undefined }) {
   const isValidAppId = !!appId && appId in APPLICATION_CONFIG;
   const config = isValidAppId
     ? APPLICATION_CONFIG[appId as ApplicationId]
     : undefined;
 
-  const resources = config?.resources ?? [];
+  const resources = config?.resources ?? NO_RESOURCES;
 
-  const [activeTab, setActiveTab] = useState(resources[0]?.key ?? "");
+  // Open the first resource that can actually be fetched without a token.
+  const firstOpenResource =
+    resources.find((r) => !r.requiresAuth) ?? resources[0];
 
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [sort, setSort] = useState("createdAt");
-  const [order, setOrder] = useState("desc");
+  const [activeTab, setActiveTab] = useState(firstOpenResource?.key ?? "");
+
+  const [search, setSearch] = useState(DEFAULT_FILTERS.search);
+  const [categoryId, setCategoryId] = useState(DEFAULT_FILTERS.categoryId);
+  const [sort, setSort] = useState(DEFAULT_FILTERS.sort);
+  const [order, setOrder] = useState(DEFAULT_FILTERS.order);
   const [pageByResource, setPageByResource] = useState<Record<string, number>>({});
 
   // Contextual detail panel (Opsi C) — e.g. Leather Shelf's per-book
@@ -76,45 +99,77 @@ function ApplicationPage() {
   const baseUrl = config?.app.url ?? "";
 
   const activeResource = useMemo(
-    () => resources.find((r) => r.key === activeTab) ?? resources[0],
-    [resources, activeTab],
+    () =>
+      resources.find((r) => r.key === activeTab && !r.requiresAuth) ??
+      firstOpenResource,
+    [resources, activeTab, firstOpenResource],
   );
 
   const page = pageByResource[activeTab] ?? 1;
 
+  // Only the params this endpoint declares in config are sent — see
+  // `params` on each resource in application.config.ts.
   const queryParams = useMemo(
     () =>
-      activeResource?.paginated
-        ? { search, categoryId, sort, order, page, limit: ITEMS_PER_PAGE }
-        : undefined,
+      buildResourceParams(activeResource, {
+        search,
+        categoryId,
+        sort,
+        order,
+        page,
+        limit: ITEMS_PER_PAGE,
+      }),
     [activeResource, search, categoryId, sort, order, page],
   );
+
+  const hasServerSearch = !!activeResource?.params?.search;
+  const categoryFilter = activeResource?.params?.category;
 
   const resourceQuery = useApplicationResource(
     safeAppId,
     baseUrl,
     activeResource?.endpoint ?? "",
     queryParams,
-    { enabled: !!config && !!activeResource },
+    { enabled: !!config && !!activeResource && !activeResource.requiresAuth },
   );
 
-  // Category dropdown data — fetched independently of the active tab so
-  // it's available on the main (paginated) resource's filter bar even
-  // when the Categories tab itself hasn't been opened.
-  const categoriesResource = resources.find((r) => r.key === "categories");
+  // Category dropdown options — fetched from the resource named in the
+  // active resource's `params.category.optionsFrom` (e.g. Categories, or
+  // Genres for Leather Shelf books), even if that tab was never opened.
+  const categoryOptionsResource = categoryFilter
+    ? resources.find((r) => r.key === categoryFilter.optionsFrom)
+    : undefined;
   const categoriesQuery = useApplicationResource<{ id: number | string; name: string }>(
     safeAppId,
     baseUrl,
-    categoriesResource?.endpoint ?? "",
+    categoryOptionsResource?.endpoint ?? "",
     undefined,
-    { enabled: !!config && !!activeResource?.paginated && !!categoriesResource },
+    { enabled: !!config && !!categoryOptionsResource },
   );
 
-  // /stats — used purely for tab badge counts (see statsKey on each
-  // resource). Only fetched for apps confirmed to have this endpoint.
-  const statsQuery = useApplicationStats(safeAppId, baseUrl, {
-    enabled: !!config?.statsEndpoint,
-  });
+  // Stats — used purely for tab badge counts (see statsKey on each
+  // resource). Only fetched for apps that declare a statsEndpoint.
+  const statsQuery = useApplicationStats(
+    safeAppId,
+    baseUrl,
+    config?.statsEndpoint,
+    { enabled: !!config },
+  );
+
+  // Apps without /stats: the paginated main resource still reports its total
+  // in `meta.total`, so a one-row request is enough to fill its card.
+  const countOnlyResource = resources.find(
+    (r) => r.paginated && !r.statsKey && !r.requiresAuth,
+  );
+  const countOnlyQuery = useApplicationResource(
+    safeAppId,
+    baseUrl,
+    countOnlyResource?.endpoint ?? "",
+    COUNT_ONLY_PARAMS,
+    { enabled: !!config && !!countOnlyResource },
+  );
+
+  const queryClient = useQueryClient();
 
   const detailConfig = config?.detail;
   const detailEnabled = !!detailConfig && selectedParentId !== null;
@@ -129,9 +184,56 @@ function ApplicationPage() {
     { enabled: detailEnabled },
   );
 
+  const resetPage = useCallback(() => {
+    setPageByResource((prev) => ({ ...prev, [activeTab]: 1 }));
+  }, [activeTab]);
+
+  // Filters belong to the tab they were set on — a search typed on Coffees
+  // shouldn't silently filter the Categories tab.
   const handleTabChange = useCallback((value: string) => {
+    if (resources.find((r) => r.key === value)?.requiresAuth) return;
+
     setActiveTab(value);
-  }, []);
+    setSearch(DEFAULT_FILTERS.search);
+    setCategoryId(DEFAULT_FILTERS.categoryId);
+    setSort(DEFAULT_FILTERS.sort);
+    setOrder(DEFAULT_FILTERS.order);
+    setPageByResource((prev) => ({ ...prev, [value]: 1 }));
+  }, [resources]);
+
+  // Any filter change starts again from page 1, otherwise a search made
+  // on page 3 can look empty when the results fit on one page.
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      resetPage();
+    },
+    [resetPage],
+  );
+
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setCategoryId(value);
+      resetPage();
+    },
+    [resetPage],
+  );
+
+  const handleSortChange = useCallback(
+    (value: string) => {
+      setSort(value);
+      resetPage();
+    },
+    [resetPage],
+  );
+
+  const handleOrderChange = useCallback(
+    (value: string) => {
+      setOrder(value);
+      resetPage();
+    },
+    [resetPage],
+  );
 
   const handlePageChange = useCallback(
     (newPage: number) => {
@@ -153,34 +255,76 @@ function ApplicationPage() {
     [detailConfig],
   );
 
+  const rawData = resourceQuery.data?.data ?? NO_ROWS;
+  const firstRow = rawData[0] as Record<string, unknown> | undefined;
+
+  // Endpoints without `?search=` get the search applied to the rows that
+  // are already loaded, so the search box works on every tab.
+  const visibleRows = useMemo(
+    () => (hasServerSearch ? rawData : filterRowsBySearch(rawData, search)),
+    [hasServerSearch, rawData, search],
+  );
+
+  // Every hook must run before the early return below — React requires
+  // the same hooks in the same order on every render.
+  const columns = useMemo<ColumnDef<any>[]>(() => {
+    if (activeResource?.columns) return activeResource.columns;
+    if (!firstRow) return [];
+    return createAutoColumns(firstRow);
+  }, [activeResource, firstRow]);
+
   if (!config || !activeResource) {
     return <Navigate to={PATHS.APPLICATIONS} replace />;
   }
 
-  const rawData = resourceQuery.data?.data ?? [];
-
   const paginatedData = activeResource.paginated
-    ? rawData
-    : rawData.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+    ? visibleRows
+    : visibleRows.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const totalPages = activeResource.paginated
     ? (resourceQuery.data?.meta?.totalPages ?? 1)
-    : Math.ceil(rawData.length / ITEMS_PER_PAGE) || 1;
-
-  const columns = useMemo<ColumnDef<any>[]>(() => {
-    if (activeResource.columns) return activeResource.columns;
-    if (rawData.length === 0) return [];
-    return createAutoColumns(rawData[0] as Record<string, unknown>);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeResource, rawData[0]]);
+    : Math.ceil(visibleRows.length / ITEMS_PER_PAGE) || 1;
 
   const isRowClickable =
     !!detailConfig && activeTab === detailConfig.parentResourceKey;
 
+  // Query key of a resource's unfiltered list — the same key its tab (and
+  // a category dropdown built from it) uses, so its cache can be read here.
+  const listQueryKey = (resource: ResourceConfig) => [
+    "resource",
+    safeAppId,
+    resource.endpoint,
+    buildResourceParams(resource, {
+      ...DEFAULT_FILTERS,
+      page: 1,
+      limit: ITEMS_PER_PAGE,
+    }),
+  ];
+
+  const statCards = buildStatCards(resources, {
+    stats: statsQuery.data,
+    isStatsLoading: statsQuery.isLoading,
+    countOnlyKey: countOnlyResource?.key,
+    countOnlyTotal: countOnlyQuery.data?.meta?.total,
+    isCountOnlyLoading: countOnlyQuery.isLoading,
+    getLoadedRowCount: (resource) =>
+      queryClient.getQueryData<{ data: unknown[] }>(listQueryKey(resource))
+        ?.data.length,
+    // Only queries that exist in the cache (a visited tab, or a category
+    // dropdown's options) can be pending; never-opened tabs have no entry.
+    isLoadingRows: (resource) =>
+      queryClient.getQueryState(listQueryKey(resource))?.status === "pending",
+  });
+
   return (
     <PageContainer>
       <div className="flex gap-6">
-        <div className="min-w-0 flex-1 space-y-6">
+        <TabsPrimitive.Root
+          value={activeResource.key}
+          onValueChange={handleTabChange}
+          activationMode="manual"
+          className="min-w-0 flex-1 space-y-6"
+        >
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <PageHeader
               title={config.app.name}
@@ -190,65 +334,44 @@ function ApplicationPage() {
               badgeEmoji={config.emoji}
             />
 
-            {config.statsEndpoint && (
-              <ResourceStatCards
-                resources={resources}
-                getCount={(key) => {
-                  const resource = resources.find((r) => r.key === key);
-                  return resource?.statsKey
-                    ? getStatValue(statsQuery.data, resource.statsKey)
-                    : undefined;
-                }}
-              />
-            )}
+            <ResourceStatCards cards={statCards} />
           </div>
 
-          <EntityTabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            tabs={resources.map((r) => {
-              const statBadge = r.statsKey
-                ? getStatValue(statsQuery.data, r.statsKey)
-                : undefined;
+          <TabsPrimitive.Content
+            value={activeResource.key}
+            className="space-y-6 rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-blue-500/30"
+          >
+            <ApplicationFilters
+              search={search}
+              categoryId={categoryId}
+              sort={sort}
+              order={order}
+              entityPluralName={activeResource.label}
+              showCategory={!!categoryFilter}
+              showSort={!!activeResource.params?.sort}
+              categories={categoriesQuery.data?.data ?? []}
+              categoryLabel={categoryOptionsResource?.label}
+              onSearchChange={handleSearchChange}
+              onCategoryChange={handleCategoryChange}
+              onSortChange={handleSortChange}
+              onOrderChange={handleOrderChange}
+            />
 
-              return {
-                value: r.key,
-                label: r.label,
-                badge:
-                  statBadge ??
-                  (r.key === activeTab ? rawData.length : undefined),
-              };
-            })}
-          />
+            <ResourceTab<any>
+              columns={columns}
+              data={paginatedData as any[]}
+              isLoading={resourceQuery.isLoading}
+              isError={resourceQuery.isError}
+              onRowClick={isRowClickable ? handleRowClick : undefined}
+            />
 
-          <ApplicationFilters
-            search={search}
-            categoryId={categoryId}
-            sort={sort}
-            order={order}
-            entityPluralName={activeResource.label}
-            showAdvanced={!!activeResource.paginated}
-            categories={categoriesQuery.data?.data ?? []}
-            onSearchChange={setSearch}
-            onCategoryChange={setCategoryId}
-            onSortChange={setSort}
-            onOrderChange={setOrder}
-          />
-
-          <ResourceTab<any>
-            columns={columns}
-            data={paginatedData as any[]}
-            isLoading={resourceQuery.isLoading}
-            isError={resourceQuery.isError}
-            onRowClick={isRowClickable ? handleRowClick : undefined}
-          />
-
-          <ApplicationPagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
+            <ApplicationPagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </TabsPrimitive.Content>
+        </TabsPrimitive.Root>
 
         {detailConfig && (
           <DetailPanel isOpen={selectedParentId !== null}>
@@ -306,6 +429,19 @@ function ApplicationPage() {
       </div>
     </PageContainer>
   );
+}
+
+/**
+ * Keyed by appId so React mounts a fresh page per application. Without the
+ * key, the same component instance is reused when navigating between apps
+ * and the previous app's tab, search, category, sort, page and open detail
+ * panel leak into the next one (e.g. Kings Brew's "entities" tab on
+ * Codigram, which has no such tab).
+ */
+function ApplicationPage() {
+  const { appId } = useParams<{ appId: string }>();
+
+  return <ApplicationPageContent key={appId} appId={appId} />;
 }
 
 export default ApplicationPage;

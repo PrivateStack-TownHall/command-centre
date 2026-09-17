@@ -2,7 +2,7 @@
 
 Centralized monitoring dashboard for the Entrepreneur Topics Ecosystem.
 
-![Command Centre Banner](./src/assets/images/banner.webp)
+![Command Centre Banner](./src/assets/images/banner.png)
 
 ## Overview
 
@@ -10,28 +10,34 @@ Command Centre is an enterprise-style administration dashboard used to monitor a
 
 The platform aggregates data from multiple applications and provides a unified experience for viewing:
 
-- Products
-- Categories
-- Images
+- Application resources (products, categories, posts, books, employees, warehouses, ...)
 - Reviews
-- Monitoring Metrics
+- Orders
+- Monitoring & health
+- Ecosystem map
 
 ---
 
 ## Applications
 
-| Application        | Description                           |
-| ------------------ | ------------------------------------- |
-| ☕ Kings Brew      | Coffee Ordering Platform              |
-| 🥩 Castle Kitchen  | Steak & Restaurant Ordering Platform  |
-| 🍔 Byte Burger     | Food Ordering Platform                |
-| 🛒 Quantum Mart    | E-Commerce Platform                   |
-| 🏪 Trade Hub       | Marketplace Platform                  |
-| 🍍 Pineapple Stack | Community Forum & Discussion Platform |
-| 👨‍💼 M-ployee        | Employee Information System           |
-| 📸 Codigram        | Social Media Platform                 |
-| 🏡 Medieval Airbnb | Property Booking Platform             |
-| 📚 Leather Shelf   | Library Management Platform           |
+| Application        | Group           | Description                               | Backend     |
+| ------------------ | --------------- | ----------------------------------------- | ----------- |
+| ☕ Kings Brew      | commerce-core   | Coffee Ordering Platform                  | Deployed    |
+| 🥩 Castle Kitchen  | commerce-core   | Steak & Restaurant Ordering Platform      | Deployed    |
+| 🍔 Byte Burger     | commerce-core   | Food Ordering Platform                    | Deployed    |
+| 🛒 Quantum Mart    | commerce-core   | E-Commerce Platform                       | Deployed    |
+| 🏪 Trade Hub       | commerce-core   | Marketplace Platform                      | Deployed    |
+| 🍍 Pineapple Stack | operations-core | Community Forum & Discussion Platform     | Deployed    |
+| 👨‍💼 M-ployee        | operations-core | Employee Information System               | Deployed    |
+| 📸 Codigram        | operations-core | Social Media Platform                     | Deployed    |
+| 📚 Leather Shelf   | operations-core | Library Management Platform               | Deployed    |
+| 📦 WareTrack       | operations-core | Warehouse & Inventory Management Platform | Deployed    |
+| 🏡 Medieval Airbnb | template        | Property Booking Platform                 | Coming soon |
+| 🧭 Nomad           | template        | Digital Nomad Platform                    | Coming soon |
+
+Each application's tabs, endpoints and supported query params are declared in
+`src/features/applications/config/application.config.ts`, based on that
+backend's Swagger.
 
 ---
 
@@ -44,26 +50,22 @@ The platform aggregates data from multiple applications and provides a unified e
 - Cross-Platform Management
 - Unified Design System
 
-### Product Management
+### Application Resources
 
-- Search
-- Sorting
-- Filtering
-- Pagination
-- Category Management
-- Product Images
+- One data-driven page per application
+- Search, category filter, sorting and pagination (only where the backend supports them)
+- Resource counts from each backend's stats endpoint
+- Contextual detail panel for nested data (e.g. comments per post)
 
 ### Review Management
 
-- Customer Feedback
-- Product Reviews
-- Rating Visualization
+- Reviews from every application that exposes a public reviews endpoint
+- Grouped per application and product
+- Rating, application and date sorting
 
-### Image Management
+### Order Management
 
-- Product Image Gallery
-- Asset Preview
-- Image Sorting
+- Public orders with status, date range and amount filters
 
 ---
 
@@ -91,6 +93,11 @@ The platform aggregates data from multiple applications and provides a unified e
 - Radix UI
 - Framer Motion
 
+### Testing
+
+- Jest + ts-jest
+- Supertest (API contract tests against the deployed Kings Brew API)
+
 ---
 
 ## Project Structure
@@ -98,24 +105,31 @@ The platform aggregates data from multiple applications and provides a unified e
 ```bash
 src/
 │
+├── app/                  # App, providers, router, route paths
 ├── components/
 │   ├── data-table/
 │   ├── shared/
 │   └── ui/
 │
 ├── features/
-│   └── applications/
-│       ├── api/
-│       ├── columns/
-│       ├── components/
-│       ├── config/
-│       ├── hooks/
-│       ├── pages/
-│       ├── tabs/
-│       └── types/
+│   ├── applications/     # Per-application resource pages
+│   │   ├── api/
+│   │   ├── columns/
+│   │   ├── components/
+│   │   ├── config/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── tabs/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── dashboard/        # Command Centre overview
+│   ├── ecosystem-map/
+│   ├── monitoring/
+│   ├── orders/
+│   └── reviews/
 │
+├── layouts/
 ├── lib/
-├── routes/
 └── main.tsx
 ```
 
@@ -132,36 +146,59 @@ git clone <repository-url>
 ### Install Dependencies
 
 ```bash
-yarn install
+npm install
 ```
 
 ### Start Development Server
 
 ```bash
-yarn dev
+npm run dev
 ```
+
+The dev server runs on port 5000.
 
 ### Build Production
 
 ```bash
-yarn build
+npm run build
 ```
 
 ### Preview Production Build
 
 ```bash
-yarn preview
+npm run preview
+```
+
+### Run Tests
+
+```bash
+npm test
+```
+
+The API contract tests hit the deployed Kings Brew API and are skipped by
+default. Run them with:
+
+```bash
+RUN_INTEGRATION_TESTS=true npm test
 ```
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file:
+Copy `.env.example` to `.env`:
 
-```env
-VITE_APP_NAME=Command Centre
+```bash
+cp .env.example .env
 ```
+
+| Variable                 | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `VITE_APP_NAME`          | Display name of the dashboard                                         |
+| `VITE_<APPLICATION>_URL` | Base URL of each application's backend. Leave empty if not deployed   |
+| `VITE_AUDIT_LOG_URL`     | Full URL of a public activity feed for the Monitoring page (optional) |
+
+See `.env.example` for the full list of application URLs.
 
 ---
 
