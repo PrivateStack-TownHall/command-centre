@@ -6,17 +6,27 @@ Centralized monitoring dashboard for the Entrepreneur Topics Ecosystem.
 
 ## Overview
 
-Command Centre is an enterprise-style administration dashboard used to monitor and manage all applications within the Entrepreneur Topics Ecosystem from a single interface.
+Command Centre is an enterprise-style administration dashboard used to monitor
+and manage all applications within the Entrepreneur Topics Ecosystem from a
+single interface.
 
-The platform aggregates data from multiple applications and provides a unified experience for viewing:
+Pages:
 
-- Application resources (products, categories, posts, books, employees, warehouses, ...)
-- Reviews
-- Orders
-- Monitoring & health
-- Ecosystem map
+| Page           | Reads from   | Shows                                                                          |
+| -------------- | ------------ | ------------------------------------------------------------------------------ |
+| Command Centre | BFF          | Ecosystem-wide totals, latest activity, per-application overview               |
+| Monitoring     | BFF          | Health, uptime and infrastructure status                                       |
+| Applications   | Each backend | Resources per application (products, posts, books, employees, warehouses, ...) |
+| Reviews        | Each backend | Reviews across every application that exposes them                             |
+| Orders         | Each backend | Public orders                                                                  |
+| Ecosystem Map  | —            | How the applications relate to each other                                      |
 
----
+## Requirements
+
+- Node.js 20+
+- **Command Centre BFF** running, for the Command Centre and Monitoring pages.
+  It serves cached snapshots of all backends, so those pages open instantly
+  even while the backends are asleep on Render.
 
 ## Applications
 
@@ -37,68 +47,41 @@ The platform aggregates data from multiple applications and provides a unified e
 
 Each application's tabs, endpoints and supported query params are declared in
 `src/features/applications/config/application.config.ts`, based on that
-backend's Swagger.
-
----
+backend's Swagger. Adding an application is a config change, not a new page.
 
 ## Features
 
-### Enterprise Dashboard
+**Dashboard and Monitoring**
 
-- Application Overview
-- Centralized Monitoring
-- Cross-Platform Management
-- Unified Design System
+- One request to the BFF per page instead of dozens to the backends
+- Snapshot age shown as "updated N minutes ago", with per-application errors
+- Applications still being refreshed are marked and polled until they answer
+- Uptime percentage over the last 24 hours
 
-### Application Resources
+**Application resources**
 
-- One data-driven page per application
-- Search, category filter, sorting and pagination (only where the backend supports them)
-- Resource counts from each backend's stats endpoint
-- Contextual detail panel for nested data (e.g. comments per post)
+- One data-driven page per application; tabs double as KPI cards
+- Search, category filter, sorting and pagination, only where the backend
+  supports them
+- Resources needing an admin token are shown locked instead of failing
+- Contextual detail panel for nested data, e.g. comments per post
 
-### Review Management
+**Reviews and Orders**
 
-- Reviews from every application that exposes a public reviews endpoint
-- Grouped per application and product
-- Rating, application and date sorting
-
-### Order Management
-
-- Public orders with status, date range and amount filters
-
----
+- Aggregated across every application that exposes a public endpoint
+- Each application is fetched separately, so a slow backend only delays itself
+- Applications without the endpoint are listed as "Coming soon"
 
 ## Technology Stack
 
-### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- Shadcn UI
-- TanStack Table
-- TanStack Query
-- React Router
-
-### State & Data
-
-- TanStack Query
-- Axios
-
-### UI Components
-
-- Lucide React
-- Radix UI
-- Framer Motion
-
-### Testing
-
-- Jest + ts-jest
-- Supertest (API contract tests against the deployed Kings Brew API)
-
----
+| Area    | Tools                                                          |
+| ------- | -------------------------------------------------------------- |
+| Core    | React 19, TypeScript, Vite                                     |
+| Styling | Tailwind CSS, shadcn/ui, Radix UI, Framer Motion, Lucide React |
+| Data    | TanStack Query, Axios                                          |
+| Tables  | TanStack Table                                                 |
+| Routing | React Router                                                   |
+| Testing | Jest, ts-jest, Supertest                                       |
 
 ## Project Structure
 
@@ -108,20 +91,25 @@ src/
 ├── app/                  # App, providers, router, route paths
 ├── components/
 │   ├── data-table/
-│   ├── shared/
-│   └── ui/
+│   ├── shared/           # Filters, page header, state, detail panel
+│   └── ui/               # shadcn components
 │
 ├── features/
 │   ├── applications/     # Per-application resource pages
 │   │   ├── api/
 │   │   ├── columns/
 │   │   ├── components/
-│   │   ├── config/
+│   │   ├── config/       # The 12 applications and their endpoints
 │   │   ├── hooks/
 │   │   ├── pages/
 │   │   ├── tabs/
 │   │   ├── types/
 │   │   └── utils/
+│   ├── bff/              # Client for the Command Centre BFF
+│   │   ├── api/
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   └── utils/        # Maps BFF responses to the dashboard's shape
 │   ├── dashboard/        # Command Centre overview
 │   ├── ecosystem-map/
 │   ├── monitoring/
@@ -129,98 +117,66 @@ src/
 │   └── reviews/
 │
 ├── layouts/
-├── lib/
+├── lib/                  # Axios, query client, retry policy, constants
 └── main.tsx
 ```
 
----
-
-## Installation
-
-### Clone Repository
-
-```bash
-git clone <repository-url>
-```
-
-### Install Dependencies
+## Getting Started
 
 ```bash
 npm install
-```
-
-### Start Development Server
-
-```bash
+cp .env.example .env
 npm run dev
 ```
 
 The dev server runs on port 5000.
 
-### Build Production
+Start the BFF in a second terminal, otherwise the Command Centre and
+Monitoring pages show a connection error:
 
 ```bash
-npm run build
+cd ../command-centre_bff && npm run start:dev
 ```
 
-### Preview Production Build
+### Scripts
 
-```bash
-npm run preview
-```
+| Script               | Description                         |
+| -------------------- | ----------------------------------- |
+| `npm run dev`        | Development server on port 5000     |
+| `npm run build`      | Type-check and build for production |
+| `npm run preview`    | Serve the production build          |
+| `npm run lint`       | ESLint                              |
+| `npm test`           | Unit tests                          |
+| `npm run test:watch` | Unit tests in watch mode            |
 
-### Run Tests
-
-```bash
-npm test
-```
-
-The API contract tests hit the deployed Kings Brew API and are skipped by
-default. Run them with:
+API contract tests hit the deployed Kings Brew API and are skipped by default:
 
 ```bash
 RUN_INTEGRATION_TESTS=true npm test
 ```
 
----
-
 ## Environment Variables
 
-Copy `.env.example` to `.env`:
+Copy `.env.example` to `.env`.
 
-```bash
-cp .env.example .env
-```
-
-| Variable                 | Description                                                           |
-| ------------------------ | --------------------------------------------------------------------- |
-| `VITE_APP_NAME`          | Display name of the dashboard                                         |
-| `VITE_<APPLICATION>_URL` | Base URL of each application's backend. Leave empty if not deployed   |
-| `VITE_AUDIT_LOG_URL`     | Full URL of a public activity feed for the Monitoring page (optional) |
+| Variable                 | Description                                                      |
+| ------------------------ | ---------------------------------------------------------------- |
+| `VITE_APP_NAME`          | Display name of the dashboard                                    |
+| `VITE_BFF_URL`           | Base URL of the Command Centre BFF, e.g. `http://localhost:3000` |
+| `VITE_<APPLICATION>_URL` | Base URL of each backend. Empty means "not deployed"             |
 
 See `.env.example` for the full list of application URLs.
 
----
-
 ## Design Principles
 
-The dashboard follows enterprise software patterns inspired by:
-
-- Stripe Dashboard
-- Shopify Admin
-- GitHub Enterprise
-- Vercel Dashboard
-- Linear
-
-### Core Principles
+Inspired by Stripe Dashboard, Shopify Admin, GitHub Enterprise, Vercel
+Dashboard and Linear:
 
 - Simplicity
 - Consistency
 - Scalability
 - Performance
-- Data-First Design
-
----
+- Data-first design
 
 ## License
 
