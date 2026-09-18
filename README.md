@@ -1,21 +1,18 @@
-# Command Centre
-
-Monorepo untuk Command Centre, dashboard terpusat bagi Entrepreneur Topics
-Ecosystem.
-
 ## Isi repository
 
-| Folder       | Isi                                                            |
-| ------------ | -------------------------------------------------------------- |
-| `front-end/` | Aplikasi dashboard (React, TypeScript, Vite, Tailwind, shadcn) |
+| Folder       | Isi                                                                     |
+| ------------ | ----------------------------------------------------------------------- |
+| `front-end/` | Aplikasi dashboard (React, TypeScript, Vite)                            |
+| `bff/`       | Backend for Frontend: agregasi 12 backend dengan snapshot di PostgreSQL |
 
 ## Menjalankan
 
-```bash
-cd front-end
-npm install
-cp .env.example .env
-npm run dev
-```
+Butuh dua terminal:
 
-Detail lengkap ada di [`front-end/README.md`](./front-end/README.md).
+```bash
+# 1. BFF
+cd bff && npm install && npm run migrate:dev && npm run start:dev
+
+# 2. Front-end
+cd front-end && npm install && npm run dev
+```
