@@ -65,13 +65,9 @@ export class MonitoringService {
     const app = this.snapshots.applications.find((item) => item.id === appId);
 
     if (!app) {
-      const known = this.snapshots.applications
-        .map((item) => item.id)
-        .join(", ");
+      const known = this.snapshots.applications.map((item) => item.id).join(", ");
 
-      throw new NotFoundException(
-        `Unknown application "${appId}". Known: ${known}`,
-      );
+      throw new NotFoundException(`Unknown application "${appId}". Known: ${known}`);
     }
 
     const since = this.hoursAgo(hours);
@@ -96,21 +92,20 @@ export class MonitoringService {
       })),
     };
   }
+
   /** An app id to show in error messages and examples. */
   exampleAppId(): string {
     const deployed = this.snapshots.applications.find((app) => app.deployed);
 
     return deployed?.id ?? this.snapshots.applications[0]?.id ?? "kings-brew";
   }
+
   hoursAgo(hours: number): Date {
     return new Date(Date.now() - hours * 60 * 60 * 1000);
   }
 }
 
-function stateOf(app: {
-  deployed: boolean;
-  health: { status: string } | null;
-}): MonitoringState {
+function stateOf(app: { deployed: boolean; health: { status: string } | null }): MonitoringState {
   if (!app.deployed) return "not-deployed";
   if (!app.health) return "unknown";
 

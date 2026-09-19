@@ -1,7 +1,7 @@
 {
   "name": "command-centre-bff",
   "version": "0.1.0",
-  "description": "Backend for Frontend of Command Centre — aggregates the ecosystem's APIs behind cached snapshots.",
+  "description": "Backend for Frontend of Command Centre \u2014 aggregates the ecosystem's APIs behind cached snapshots.",
   "private": true,
   "license": "MIT",
   "engines": {
@@ -12,10 +12,12 @@
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "postinstall": "prisma generate",
+    "db:create": "node --env-file-if-exists=.env scripts/create-database.mjs",
     "db:studio": "prisma studio",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
+    "check": "node scripts/check-api.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")       // pooled, dipakai aplikasi
-  directUrl = env("DIRECT_URL")          // direct, dipakai migrate
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 /// One row per application: the latest summary plus its refresh state.

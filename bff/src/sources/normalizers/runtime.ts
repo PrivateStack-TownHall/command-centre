@@ -83,10 +83,7 @@ const byNewest = (a: Json, b: Json) =>
   (Date.parse(String(a.createdAt ?? "")) || 0);
 
 /** Reads GET /activities and keeps only the newest few entries. */
-export function summarizeActivities(
-  body: unknown,
-  limit: number,
-): ActivitiesSection {
+export function summarizeActivities(body: unknown, limit: number): ActivitiesSection {
   const items = Array.isArray(body)
     ? body.filter(isObject)
     : isObject(body) && Array.isArray(body.data)

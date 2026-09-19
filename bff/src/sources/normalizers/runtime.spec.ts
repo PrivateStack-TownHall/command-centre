@@ -5,12 +5,7 @@ describe("normalizeMonitoring", () => {
     const section = normalizeMonitoring({
       success: true,
       application: "Kings Brew",
-      node: {
-        version: "v22.14.0",
-        uptime: 123,
-        platform: "linux",
-        environment: "production",
-      },
+      node: { version: "v22.14.0", uptime: 123, platform: "linux", environment: "production" },
       memory: { rss: 65536000, heapTotal: 34000000, heapUsed: 21000000 },
       database: { status: "CONNECTED", latency: 12 },
       response: { generatedAt: "2026-06-18T00:00:00.000Z" },
@@ -39,30 +34,9 @@ describe("summarizeActivities", () => {
   const body = {
     success: true,
     data: [
-      {
-        id: "order-12",
-        type: "ORDER_CREATED",
-        entity: "Order",
-        title: "#12",
-        description: "Order PENDING",
-        createdAt: "2026-06-18T01:00:00Z",
-      },
-      {
-        id: "product-5",
-        type: "PRODUCT_CREATED",
-        entity: "Product",
-        title: "Espresso",
-        description: "New product",
-        createdAt: "2026-06-18T00:00:00Z",
-      },
-      {
-        id: "review-3",
-        type: "REVIEW_CREATED",
-        entity: "Review",
-        title: "5 stars",
-        description: "New review",
-        createdAt: "2026-06-19T00:00:00Z",
-      },
+      { id: "order-12", type: "ORDER_CREATED", entity: "Order", title: "#12", description: "Order PENDING", createdAt: "2026-06-18T01:00:00Z" },
+      { id: "product-5", type: "PRODUCT_CREATED", entity: "Product", title: "Espresso", description: "New product", createdAt: "2026-06-18T00:00:00Z" },
+      { id: "review-3", type: "REVIEW_CREATED", entity: "Review", title: "5 stars", description: "New review", createdAt: "2026-06-19T00:00:00Z" },
     ],
   };
 
@@ -70,10 +44,7 @@ describe("summarizeActivities", () => {
     const section = summarizeActivities(body, 2);
 
     expect(section.total).toBe(3);
-    expect(section.latest.map((item) => item.id)).toEqual([
-      "review-3",
-      "order-12",
-    ]);
+    expect(section.latest.map((item) => item.id)).toEqual(["review-3", "order-12"]);
   });
 
   it("accepts a plain array and tolerates missing fields", () => {

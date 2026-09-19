@@ -5,10 +5,8 @@
 
 export interface AppEnv {
   PORT: number;
-  /** Connection string used by the app. On Neon this is the pooled one. */
   DATABASE_URL: string;
-  /** Direct (non-pooled) connection string, used by prisma migrate. */
-  DIRECT_URL: string;
+  DATABASE_SSL: boolean;
   /** Comma-separated list of origins allowed by CORS. */
   FRONTEND_ORIGIN: string[];
   /** Age after which a snapshot is refreshed in the background. */
@@ -31,9 +29,7 @@ function toInt(value: unknown, fallback: number, name: string): number {
   const parsed = Number(value);
 
   if (!Number.isInteger(parsed) || parsed < 0) {
-    throw new Error(
-      `${name} must be a non-negative integer, got "${String(value)}"`,
-    );
+    throw new Error(`${name} must be a non-negative integer, got "${String(value)}"`);
   }
 
   return parsed;
@@ -48,36 +44,17 @@ export function validateEnv(
     throw new Error("DATABASE_URL is required (PostgreSQL connection string)");
   }
 
-  // Prisma reads DIRECT_URL itself for migrations; falling back to
-  // DATABASE_URL keeps a plain, non-pooled setup working.
-  const directUrl = String(raw.DIRECT_URL ?? "").trim() || databaseUrl;
-
-  if (databaseUrl.includes("-pooler") && directUrl === databaseUrl) {
-    console.warn(
-      "DATABASE_URL points at a pooled endpoint but DIRECT_URL is not set — " +
-        'prisma migrate may fail. Set DIRECT_URL to the same URL without "-pooler".',
-    );
-  }
-
   return {
     ...raw,
     PORT: toInt(raw.PORT, 3000, "PORT"),
     DATABASE_URL: databaseUrl,
-    DIRECT_URL: directUrl,
+    DATABASE_SSL: String(raw.DATABASE_SSL ?? "false").toLowerCase() === "true",
     FRONTEND_ORIGIN: String(raw.FRONTEND_ORIGIN ?? "http://localhost:5000")
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
-    SNAPSHOT_TTL_SECONDS: toInt(
-      raw.SNAPSHOT_TTL_SECONDS,
-      300,
-      "SNAPSHOT_TTL_SECONDS",
-    ),
-    REFRESH_LOCK_SECONDS: toInt(
-      raw.REFRESH_LOCK_SECONDS,
-      300,
-      "REFRESH_LOCK_SECONDS",
-    ),
+    SNAPSHOT_TTL_SECONDS: toInt(raw.SNAPSHOT_TTL_SECONDS, 300, "SNAPSHOT_TTL_SECONDS"),
+    REFRESH_LOCK_SECONDS: toInt(raw.REFRESH_LOCK_SECONDS, 300, "REFRESH_LOCK_SECONDS"),
     MANUAL_REFRESH_MIN_SECONDS: toInt(
       raw.MANUAL_REFRESH_MIN_SECONDS,
       30,
@@ -89,10 +66,6 @@ export function validateEnv(
       7,
       "HEALTH_HISTORY_RETENTION_DAYS",
     ),
-    UPTIME_WINDOW_HOURS: toInt(
-      raw.UPTIME_WINDOW_HOURS,
-      24,
-      "UPTIME_WINDOW_HOURS",
-    ),
+    UPTIME_WINDOW_HOURS: toInt(raw.UPTIME_WINDOW_HOURS, 24, "UPTIME_WINDOW_HOURS"),
   };
 }
