@@ -44,43 +44,13 @@ export class ApplicationSourceService {
     const data: AppSnapshotData = { ...previous };
     const errors: SectionErrors = {};
 
-    const tasks: Array<
-      [
-        SnapshotSection,
-        string | undefined,
-        (body: unknown, latencyMs: number) => void,
-      ]
-    > = [
-      [
-        "health",
-        app.healthEndpoint,
-        (body, latencyMs) => (data.health = normalizeHealth(body, latencyMs)),
-      ],
-      [
-        "stats",
-        app.statsEndpoint,
-        (body) => (data.stats = normalizeStats(body)),
-      ],
-      [
-        "monitoring",
-        app.monitoringEndpoint,
-        (body) => (data.monitoring = normalizeMonitoring(body)),
-      ],
-      [
-        "activities",
-        app.activitiesEndpoint,
-        (body) => (data.activities = summarizeActivities(body, latestLimit)),
-      ],
-      [
-        "reviews",
-        app.reviewsEndpoint,
-        (body) => (data.reviews = summarizeReviews(body, latestLimit)),
-      ],
-      [
-        "orders",
-        app.ordersEndpoint,
-        (body) => (data.orders = summarizeOrders(body, latestLimit)),
-      ],
+    const tasks: Array<[SnapshotSection, string | undefined, (body: unknown, latencyMs: number) => void]> = [
+      ["health", app.healthEndpoint, (body, latencyMs) => (data.health = normalizeHealth(body, latencyMs))],
+      ["stats", app.statsEndpoint, (body) => (data.stats = normalizeStats(body))],
+      ["monitoring", app.monitoringEndpoint, (body) => (data.monitoring = normalizeMonitoring(body))],
+      ["activities", app.activitiesEndpoint, (body) => (data.activities = summarizeActivities(body, latestLimit))],
+      ["reviews", app.reviewsEndpoint, (body) => (data.reviews = summarizeReviews(body, latestLimit))],
+      ["orders", app.ordersEndpoint, (body) => (data.orders = summarizeOrders(body, latestLimit))],
     ];
 
     await Promise.all(

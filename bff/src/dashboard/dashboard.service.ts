@@ -5,17 +5,11 @@ import type {
   OrderSummaryItem,
   ReviewSummaryItem,
 } from "../sources/normalizers";
-import {
-  type AppSnapshotView,
-  SnapshotsService,
-} from "../snapshots/snapshots.service";
+import { type AppSnapshotView, SnapshotsService } from "../snapshots/snapshots.service";
 
 type WithApp<T> = T & { appId: string; appName: string; appEmoji: string };
 
-const newestFirst = (
-  a: { createdAt: string | null },
-  b: { createdAt: string | null },
-) =>
+const newestFirst = (a: { createdAt: string | null }, b: { createdAt: string | null }) =>
   (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0);
 
 @Injectable()
@@ -28,16 +22,8 @@ export class DashboardService {
     return {
       generatedAt: new Date().toISOString(),
       summary: this.summarize(applications),
-      latestReviews: this.mergeLatest(
-        applications,
-        (app) => app.reviews?.latest,
-        limit,
-      ),
-      latestOrders: this.mergeLatest(
-        applications,
-        (app) => app.orders?.latest,
-        limit,
-      ),
+      latestReviews: this.mergeLatest(applications, (app) => app.reviews?.latest, limit),
+      latestOrders: this.mergeLatest(applications, (app) => app.orders?.latest, limit),
       latestActivities: this.mergeLatest(
         applications,
         (app) => app.activities?.latest,
@@ -82,9 +68,7 @@ export class DashboardService {
       refreshing: applications.filter((app) => app.refreshing).length,
       reviews: {
         total: reviewCount,
-        averageRating: ratedReviews
-          ? Math.round((ratingSum / ratedReviews) * 100) / 100
-          : null,
+        averageRating: ratedReviews ? Math.round((ratingSum / ratedReviews) * 100) / 100 : null,
       },
       orders: { total: orderCount, byStatus: ordersByStatus },
     };

@@ -1,4 +1,5 @@
 export * from "./runtime";
+
 /*
  * Turn each backend's raw responses into the small, uniform pieces stored in
  * a snapshot. Every function is defensive: backends differ slightly, and a
@@ -40,15 +41,10 @@ export interface HealthSection {
 }
 
 /** `/health` answers `{ status: "UP" }`; `GET /` answers `{ success: true }`. */
-export function normalizeHealth(
-  body: unknown,
-  latencyMs: number,
-): HealthSection {
+export function normalizeHealth(body: unknown, latencyMs: number): HealthSection {
   const data = isObject(body) ? body : {};
   const isUp =
-    typeof data.status === "string"
-      ? data.status === "UP"
-      : data.success === true;
+    typeof data.status === "string" ? data.status === "UP" : data.success === true;
 
   return {
     status: isUp ? "UP" : "DOWN",
@@ -79,8 +75,7 @@ export function normalizeStats(body: unknown): Json | null {
 }
 
 const byNewest = (a: Json, b: Json) =>
-  (Date.parse(String(b.createdAt ?? "")) || 0) -
-  (Date.parse(String(a.createdAt ?? "")) || 0);
+  (Date.parse(String(b.createdAt ?? "")) || 0) - (Date.parse(String(a.createdAt ?? "")) || 0);
 
 export interface ReviewSummaryItem {
   id: number | string | null;
@@ -101,16 +96,12 @@ export interface ReviewsSection {
 
 export function summarizeReviews(body: unknown, limit: number): ReviewsSection {
   const reviews = unwrapList(body);
-  const ratings = reviews
-    .map((review) => num(review.rating))
-    .filter((r): r is number => r !== null);
+  const ratings = reviews.map((review) => num(review.rating)).filter((r): r is number => r !== null);
 
   return {
     total: reviews.length,
     averageRating: ratings.length
-      ? Math.round(
-          (ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 100,
-        ) / 100
+      ? Math.round((ratings.reduce((sum, r) => sum + r, 0) / ratings.length) * 100) / 100
       : null,
     latest: [...reviews]
       .sort(byNewest)

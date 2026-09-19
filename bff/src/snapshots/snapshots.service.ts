@@ -70,13 +70,9 @@ export class SnapshotsService {
   ) {
     this.ttlSeconds = config.get("SNAPSHOT_TTL_SECONDS", { infer: true });
     this.lockSeconds = config.get("REFRESH_LOCK_SECONDS", { infer: true });
-    this.manualRefreshMinSeconds = config.get("MANUAL_REFRESH_MIN_SECONDS", {
-      infer: true,
-    });
+    this.manualRefreshMinSeconds = config.get("MANUAL_REFRESH_MIN_SECONDS", { infer: true });
     this.latestItemsLimit = config.get("LATEST_ITEMS_LIMIT", { infer: true });
-    this.historyRetentionDays = config.get("HEALTH_HISTORY_RETENTION_DAYS", {
-      infer: true,
-    });
+    this.historyRetentionDays = config.get("HEALTH_HISTORY_RETENTION_DAYS", { infer: true });
   }
 
   /** Every application's snapshot, refreshing the stale ones in the background. */
@@ -116,8 +112,7 @@ export class SnapshotsService {
 
       const fetchedAt = records.get(app.id)?.fetchedAt;
       const tooRecent =
-        fetchedAt &&
-        now - fetchedAt.getTime() < this.manualRefreshMinSeconds * 1000;
+        fetchedAt && now - fetchedAt.getTime() < this.manualRefreshMinSeconds * 1000;
 
       if (tooRecent) {
         return { appId: app.id, accepted: false, reason: "too-recent" };
@@ -168,10 +163,7 @@ export class SnapshotsService {
   }
 
   async refresh(app: ResolvedApplication): Promise<void> {
-    const acquired = await this.repository.tryAcquireRefreshLock(
-      app.id,
-      this.lockSeconds,
-    );
+    const acquired = await this.repository.tryAcquireRefreshLock(app.id, this.lockSeconds);
 
     if (!acquired) return;
 
@@ -179,18 +171,9 @@ export class SnapshotsService {
       const records = await this.findRecords();
       const previous = records.get(app.id)?.data ?? emptySnapshotData();
 
-      const { data, errors } = await this.source.collect(
-        app,
-        previous,
-        this.latestItemsLimit,
-      );
+      const { data, errors } = await this.source.collect(app, previous, this.latestItemsLimit);
 
-      await this.repository.saveRefreshResult(
-        app.id,
-        data,
-        errors,
-        this.clock(),
-      );
+      await this.repository.saveRefreshResult(app.id, data, errors, this.clock());
 
       if (data.health) {
         await this.repository.recordHealthCheck(app.id, {
@@ -203,9 +186,7 @@ export class SnapshotsService {
       const failed = Object.keys(errors);
 
       if (failed.length > 0) {
-        this.logger.warn(
-          `${app.id}: refreshed with errors in ${failed.join(", ")}`,
-        );
+        this.logger.warn(`${app.id}: refreshed with errors in ${failed.join(", ")}`);
       }
 
       await this.pruneHistory();
@@ -223,15 +204,11 @@ export class SnapshotsService {
 
     this.lastPrunedAt = now;
 
-    const before = new Date(
-      now - this.historyRetentionDays * 24 * 60 * 60 * 1000,
-    );
+    const before = new Date(now - this.historyRetentionDays * 24 * 60 * 60 * 1000);
     const removed = await this.repository.deleteHealthChecksBefore(before);
 
     if (removed > 0) {
-      this.logger.log(
-        `Removed ${removed} health checks older than ${this.historyRetentionDays} days`,
-      );
+      this.logger.log(`Removed ${removed} health checks older than ${this.historyRetentionDays} days`);
     }
   }
 

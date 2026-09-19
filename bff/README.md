@@ -70,8 +70,15 @@ Requirements: Node.js 20+, PostgreSQL 13+.
 ```bash
 npm install                # also runs `prisma generate`
 cp .env.example .env       # set DATABASE_URL and the backend URLs
+npm run db:create          # creates the database named in DATABASE_URL
 npm run migrate:dev        # creates the tables
 npm run start:dev          # http://localhost:3000, docs at /docs
+```
+
+Then, in a second terminal, call every endpoint and print a summary:
+
+```bash
+npm run check
 ```
 
 In production the migrations are applied with `npm run migrate:deploy`.
@@ -81,6 +88,9 @@ In production the migrations are applied with `npm run migrate:deploy`.
 | Script | Description |
 | ------ | ----------- |
 | `npm run start:dev` | Development with watch mode |
+| `npm run db:create` | Create the database named in `DATABASE_URL` if it doesn't exist |
+| `npm run check` | Call every endpoint of a running server and print a summary |
+| `npm run db:studio` | Browse the tables in Prisma Studio |
 | `npm run migrate:dev` | Apply migrations locally and regenerate the Prisma client |
 | `npm run migrate:deploy` | Apply pending migrations (production) |
 | `npm run prisma:generate` | Regenerate the Prisma client after editing the schema |
@@ -92,6 +102,7 @@ In production the migrations are applied with `npm run migrate:deploy`.
 End-to-end tests need an **empty, disposable** database:
 
 ```bash
+E2E_DATABASE_URL=postgres://postgres:postgres@localhost:5432/command_centre_bff_test npm run db:create
 E2E_DATABASE_URL=postgres://postgres:postgres@localhost:5432/command_centre_bff_test npm run test:e2e
 ```
 
@@ -122,6 +133,9 @@ See `.env.example`.
 prisma/
 ├── schema.prisma               # the two tables
 └── migrations/                 # SQL applied by prisma migrate
+scripts/
+├── create-database.mjs         # npm run db:create
+└── check-api.mjs               # npm run check
 src/
 ├── main.ts                     # bootstrap
 ├── setup-app.ts                # CORS, envelope, error filter, Swagger (shared with e2e)

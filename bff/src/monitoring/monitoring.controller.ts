@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  ParseIntPipe,
-  Query,
-} from "@nestjs/common";
+import { BadRequestException, Controller, Get, ParseIntPipe, Query } from "@nestjs/common";
 import { ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 
 import { MonitoringService } from "./monitoring.service";
@@ -45,9 +39,7 @@ export class MonitoringController {
     }
 
     if (hours < 1 || hours > MAX_HOURS) {
-      throw new BadRequestException(
-        `"hours" must be between 1 and ${MAX_HOURS}`,
-      );
+      throw new BadRequestException(`"hours" must be between 1 and ${MAX_HOURS}`);
     }
 
     return this.monitoring.getHistory(appId, hours);

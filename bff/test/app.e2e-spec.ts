@@ -12,6 +12,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 
 import { UpstreamHttpClient } from "../src/common/http/upstream-http.client";
+import { APPLICATIONS } from "../src/config/applications.config";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { SnapshotsRepository } from "../src/snapshots/snapshots.repository";
 import { SnapshotsService } from "../src/snapshots/snapshots.service";
@@ -23,20 +24,14 @@ type Routes = Record<string, { status?: number; body?: unknown }>;
 
 function fakeBackend(routes: Routes): Promise<{ server: Server; url: string }> {
   const server = createServer((req, res) => {
-    const route = routes[req.url ?? ""] ?? {
-      status: 404,
-      body: { success: false },
-    };
+    const route = routes[req.url ?? ""] ?? { status: 404, body: { success: false } };
     res.writeHead(route.status ?? 200, { "content-type": "application/json" });
     res.end(JSON.stringify(route.body ?? {}));
   });
 
   return new Promise((resolve) =>
     server.listen(0, () =>
-      resolve({
-        server,
-        url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
-      }),
+      resolve({ server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` }),
     ),
   );
 }
@@ -47,81 +42,53 @@ describeWithDb("Command Centre BFF (e2e)", () => {
 
   beforeAll(async () => {
     const kingsBrew = await fakeBackend({
-      "/health": {
-        body: {
-          success: true,
-          status: "UP",
-          database: "CONNECTED",
-          version: "1.0.0",
-          uptime: 7384,
-        },
-      },
-      "/stats": {
-        body: {
-          success: true,
-          products: { total: 42 },
-          reviews: { total: 2, averageRating: 4 },
-        },
-      },
+      "/health": { body: { success: true, status: "UP", database: "CONNECTED", version: "1.0.0", uptime: 7384 } },
+      "/stats": { body: { success: true, products: { total: 42 }, reviews: { total: 2, averageRating: 4 } } },
       "/reviews": {
         body: {
           success: true,
           data: [
-            {
-              id: 1,
-              productId: 1,
-              rating: 5,
-              comment: "Great",
-              createdAt: "2026-06-02T00:00:00Z",
-              product: { name: "Espresso" },
-            },
-            {
-              id: 2,
-              productId: 2,
-              rating: 3,
-              comment: null,
-              createdAt: "2026-06-01T00:00:00Z",
-            },
+            { id: 1, productId: 1, rating: 5, comment: "Great", createdAt: "2026-06-02T00:00:00Z", product: { name: "Espresso" } },
+            { id: 2, productId: 2, rating: 3, comment: null, createdAt: "2026-06-01T00:00:00Z" },
           ],
         },
       },
       "/public/orders": {
+        body: { success: true, data: [{ id: 7, orderNumber: "KB-7", status: "PENDING", totalAmount: "25000", createdAt: "2026-06-03T00:00:00Z", items: [{}] }] },
+      },
+      "/monitoring": {
+        body: {
+          success: true,
+          node: { version: "v22", uptime: 123, platform: "linux", environment: "production" },
+          memory: { rss: 1, heapTotal: 2, heapUsed: 3 },
+          database: { status: "CONNECTED", latency: 12 },
+          response: { generatedAt: "2026-06-18T00:00:00Z" },
+        },
+      },
+      "/activities": {
         body: {
           success: true,
           data: [
-            {
-              id: 7,
-              orderNumber: "KB-7",
-              status: "PENDING",
-              totalAmount: "25000",
-              createdAt: "2026-06-03T00:00:00Z",
-              items: [{}],
-            },
+            { id: "order-7", type: "ORDER_CREATED", entity: "Order", title: "#7", description: "Order PENDING", createdAt: "2026-06-03T00:00:00Z" },
           ],
         },
       },
     });
     const castleKitchen = await fakeBackend({
-      "/": { body: { success: true, message: "Castle Kitchen API" } },
-      "/reviews": {
-        body: {
-          success: true,
-          data: [
-            {
-              id: 1,
-              productId: 1,
-              rating: 4,
-              createdAt: "2026-06-04T00:00:00Z",
-            },
-          ],
-        },
-      },
+      "/health": { body: { success: true, status: "UP", database: "CONNECTED" } },
+      "/reviews": { body: { success: true, data: [{ id: 1, productId: 1, rating: 4, createdAt: "2026-06-04T00:00:00Z" }] } },
     });
     const byteBurger = await fakeBackend({
-      "/": { status: 503 },
+      "/health": { status: 503 },
       "/reviews": { status: 503 },
     });
     backends = [kingsBrew.server, castleKitchen.server, byteBurger.server];
+
+    // A developer's .env would otherwise leak the real Render URLs into this
+    // run: blank every application first, then point three at the fakes.
+    for (const application of APPLICATIONS) {
+      process.env[application.urlEnv] = "";
+    }
 
     Object.assign(process.env, {
       DATABASE_URL,
@@ -135,9 +102,7 @@ describeWithDb("Command Centre BFF (e2e)", () => {
     const { AppModule } = await import("../src/app.module");
     const { setupApp } = await import("../src/setup-app");
 
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
     setupApp(app);
     await app.init();
@@ -145,27 +110,20 @@ describeWithDb("Command Centre BFF (e2e)", () => {
     // Retries without real waiting.
     app.get(UpstreamHttpClient).sleep = async () => undefined;
 
-    await app
-      .get(PrismaService)
-      .$executeRawUnsafe(
-        "TRUNCATE app_snapshots, health_checks RESTART IDENTITY CASCADE",
-      );
+    await app.get(PrismaService).$executeRawUnsafe(
+      "TRUNCATE app_snapshots, health_checks RESTART IDENTITY CASCADE",
+    );
   });
 
   afterAll(async () => {
     await app?.close();
-    await Promise.all(
-      backends.map((server) => new Promise((resolve) => server.close(resolve))),
-    );
+    await Promise.all(backends.map((server) => new Promise((resolve) => server.close(resolve))));
   });
 
-  const byId = (items: Array<{ id: string }>, id: string) =>
-    items.find((item) => item.id === id) as any;
+  const byId = (items: Array<{ id: string }>, id: string) => items.find((item) => item.id === id) as any;
 
   it("GET /health reports the BFF and its database", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/health")
-      .expect(200);
+    const response = await request(app.getHttpServer()).get("/health").expect(200);
 
     expect(response.body).toMatchObject({
       success: true,
@@ -174,62 +132,53 @@ describeWithDb("Command Centre BFF (e2e)", () => {
   });
 
   it("GET /dashboard answers at once, then serves stored snapshots", async () => {
-    const first = await request(app.getHttpServer())
-      .get("/dashboard")
-      .expect(200);
+    const first = await request(app.getHttpServer()).get("/dashboard").expect(200);
     const firstApps = first.body.data.applications;
 
     expect(firstApps).toHaveLength(12);
-    expect(byId(firstApps, "kings-brew")).toMatchObject({
-      freshness: "missing",
-      refreshing: true,
-    });
-    expect(byId(firstApps, "nomad")).toMatchObject({
-      freshness: "not-deployed",
-    });
+    expect(byId(firstApps, "kings-brew")).toMatchObject({ freshness: "missing", refreshing: true });
+    expect(byId(firstApps, "nomad")).toMatchObject({ freshness: "not-deployed" });
 
     await app.get(SnapshotsService).waitForRefreshes();
 
-    const second = await request(app.getHttpServer())
-      .get("/dashboard")
-      .expect(200);
-    const { summary, latestReviews, latestOrders, applications } =
-      second.body.data;
+    const second = await request(app.getHttpServer()).get("/dashboard").expect(200);
+    const { summary, latestReviews, latestOrders, applications } = second.body.data;
 
     expect(byId(applications, "kings-brew")).toMatchObject({
       freshness: "fresh",
       health: { status: "UP", uptimeSeconds: 7384 },
       stats: { products: { total: 42 } },
       orders: { total: 1, byStatus: { PENDING: 1 }, totalAmount: 25000 },
+      monitoring: { database: { status: "CONNECTED", latencyMs: 12 } },
+      activities: { total: 1 },
     });
-    expect(byId(applications, "castle-kitchen")).toMatchObject({
-      health: { status: "UP" },
-      stats: null,
-    });
+    expect(byId(applications, "castle-kitchen")).toMatchObject({ health: { status: "UP" }, stats: null });
     expect(byId(applications, "byte-burger")).toMatchObject({
       health: { status: "DOWN", reachable: false },
       errors: { health: "HTTP 503", reviews: "HTTP 503" },
     });
 
-    expect(summary).toMatchObject({
-      deployed: 3,
-      online: 2,
-      offline: 1,
-      reviews: { total: 3 },
+    expect(summary).toMatchObject({ deployed: 3, online: 2, offline: 1, reviews: { total: 3 } });
+    expect(latestReviews.map((review: { appId: string }) => review.appId)).toEqual([
+      "castle-kitchen",
+      "kings-brew",
+      "kings-brew",
+    ]);
+    expect(latestOrders[0]).toMatchObject({ orderNumber: "KB-7", appEmoji: "☕" });
+    expect(second.body.data.latestActivities[0]).toMatchObject({
+      type: "ORDER_CREATED",
+      appId: "kings-brew",
     });
-    expect(
-      latestReviews.map((review: { appId: string }) => review.appId),
-    ).toEqual(["castle-kitchen", "kings-brew", "kings-brew"]);
-    expect(latestOrders[0]).toMatchObject({
-      orderNumber: "KB-7",
-      appEmoji: "☕",
+
+    // Apps without those endpoints keep both sections null.
+    expect(byId(applications, "castle-kitchen")).toMatchObject({
+      monitoring: null,
+      activities: null,
     });
   });
 
   it("GET /monitoring reads the same snapshots", async () => {
-    const response = await request(app.getHttpServer())
-      .get("/monitoring")
-      .expect(200);
+    const response = await request(app.getHttpServer()).get("/monitoring").expect(200);
 
     // Only three backends have a URL in this test; the other nine are "not deployed".
     expect(response.body.data.summary).toEqual({
@@ -286,9 +235,7 @@ describeWithDb("Command Centre BFF (e2e)", () => {
 
     await repository.releaseRefreshLock("kings-brew");
     const results = await Promise.all(
-      Array.from({ length: 10 }, () =>
-        repository.tryAcquireRefreshLock("kings-brew", 300),
-      ),
+      Array.from({ length: 10 }, () => repository.tryAcquireRefreshLock("kings-brew", 300)),
     );
     await repository.releaseRefreshLock("kings-brew");
 
