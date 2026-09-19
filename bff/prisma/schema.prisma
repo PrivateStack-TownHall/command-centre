@@ -1,0 +1,47 @@
+// Schema of the BFF's own database. It stores summaries of the ecosystem's
+// backends — never their raw data, which stays owned by each backend.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// One row per application: the latest summary plus its refresh state.
+model AppSnapshot {
+  appId            String    @id @map("app_id") @db.VarChar(64)
+  /// health, stats, reviews and orders sections.
+  data             Json      @default("{}")
+  /// Sections that failed the last refresh, e.g. { "stats": "HTTP 503" }.
+  errors           Json      @default("{}")
+  /// When the last refresh finished, even if some sections failed.
+  fetchedAt        DateTime? @map("fetched_at") @db.Timestamptz(3)
+  /// Set while a refresh runs — acts as the lock.
+  refreshStartedAt DateTime? @map("refresh_started_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  healthChecks HealthCheck[]
+
+  @@map("app_snapshots")
+}
+
+/// One row per health check, kept for uptime and latency history.
+model HealthCheck {
+  id        Int      @id @default(autoincrement())
+  appId     String   @map("app_id") @db.VarChar(64)
+  /// "UP" or "DOWN".
+  status    String   @db.VarChar(8)
+  /// false when the backend didn't answer at all.
+  reachable Boolean
+  latencyMs Int?     @map("latency_ms")
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(3)
+
+  application AppSnapshot @relation(fields: [appId], references: [appId], onDelete: Cascade)
+
+  @@index([appId, checkedAt])
+  @@map("health_checks")
+}

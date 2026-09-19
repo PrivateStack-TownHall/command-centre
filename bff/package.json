@@ -1,0 +1,73 @@
+{
+  "name": "command-centre-bff",
+  "version": "0.1.0",
+  "description": "Backend for Frontend of Command Centre \u2014 aggregates the ecosystem's APIs behind cached snapshots.",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "postinstall": "prisma generate",
+    "db:create": "node --env-file-if-exists=.env scripts/create-database.mjs",
+    "db:studio": "prisma studio",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
+    "check": "node scripts/check-api.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.spec.ts",
+      "!main.ts",
+      "!**/*.module.ts"
+    ],
+    "coverageDirectory": "../coverage"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.5",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.2.5",
+    "@nestjs/platform-express": "^11.2.5",
+    "@nestjs/swagger": "^11.4.7",
+    "@prisma/client": "^6.19.3",
+    "axios": "^1.20.0",
+    "pg": "^8.23.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/testing": "^11.2.5",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.20.3",
+    "@types/supertest": "^7.2.1",
+    "jest": "^29.7.0",
+    "prisma": "^6.19.3",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
